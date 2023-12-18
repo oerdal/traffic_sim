@@ -1,27 +1,46 @@
 import dearpygui.dearpygui as dpg
 
 from car import Car
+from road import Road
 from parameters import *
+
+import logging
+import random
 
 class Simulation:
     def __init__(self, sim_len=50):
         self.cars = []
+        self.roads = []
         self.fps = 60
         self.ticks_since_car = 0
 
     
     def add_car(self):
-        self.cars.append(Car())
+        if self.roads:
+            road = random.choice(self.roads)
+            lane = random.choice(road.lanes)
+
+            car = Car()
+            self.cars.append(car)
+            lane.cars.append(car)
+        
+        else:
+            logging.warning('No road for car to be added to.')
+
+
+    
+    def add_road(self):
+        self.roads.append(Road(((0, 150), (1000, 150))))
 
 
     def update(self):
         for car in self.cars:
             car.update()
         
-        self.ticks_since_car += 1
-        if self.ticks_since_car >= 200:
-            self.add_car()
-            self.ticks_since_car = 0
+        # self.ticks_since_car += 1
+        # if self.ticks_since_car >= 200:
+        #     self.add_car()
+        #     self.ticks_since_car = 0
 
 
     def run_sim(self):
@@ -37,6 +56,11 @@ class Window:
         self.setup_sim()
     
 
+    def handle_add_car(self):
+        if self.sim:
+            self.sim.add_car()
+
+
     # initialization calls to dpg
     def setup_dpg(self):
         dpg.create_context()
@@ -46,23 +70,38 @@ class Window:
 
     def setup_canvas(self):
         # "In the case of DPG we call the operating system window the viewport and the DPG windows as windows." - DPG Docs        
-        with dpg.window(label='Main Window', tag='Canvas', no_resize=True, no_close=True, pos=(50, 50)):
-            with dpg.drawlist(width=CANVAS_WIDTH, height=CANVAS_HEIGHT):
-                with dpg.draw_node(tag='Road 1'):
-                    dpg.draw_line((0, 103), (CANVAS_WIDTH, 103), color=(230, 230, 230, 100), thickness=10)
-        
+        with dpg.window(label='Main Window', tag='Canvas', no_resize=True, no_close=True, pos=(50, 50)) as window:
+            ...
+
+        dpg.set_primary_window('Canvas', True)
+        # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size(window)
+        # print(self.CANVAS_HEIGHT)
+
         with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+100, 50)):
-                dpg.add_button(label='Step', callback=self.update)
+            dpg.add_button(label='Add Car', callback=self.handle_add_car)
+
+
         
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
 
     
     def setup_sim(self):
         self.sim = Simulation()
+        self.sim.add_road()
         self.sim.add_car()
 
 
     def render_loop(self):
+        # render roads
+        for road_id, road in enumerate(self.sim.roads):
+            for lane_id, lane in enumerate(road.lanes):
+                dpg.delete_item(f'Road {road_id}.{lane_id}')
+                (x1, y1), (x2, y2) = lane.endpoints
+                with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
+                    dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 100), thickness=LANE_WIDTH)
+
+
+        # render cars
         for car_id, car in enumerate(self.sim.cars):
             dpg.delete_item(f'Car {car_id}')
             with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
@@ -83,6 +122,8 @@ class Window:
         while dpg.is_dearpygui_running():
             # insert here any code you would like to run in the render loop
             # you can manually stop by using stop_dearpygui()
+            
+            self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
             self.render_loop()
             # print('hi')
             dpg.render_dearpygui_frame()
