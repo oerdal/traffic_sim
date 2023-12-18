@@ -1,5 +1,7 @@
 from math import sqrt
 
+# pass tuple of endpoints or a single displacement vector
+# currently works with 2D space coordinate space only
 def get_orthonormal_vector(endpoints=None, vec=None):
     if endpoints:
         (x1, y1), (x2, y2) = endpoints
@@ -19,6 +21,13 @@ def get_orthonormal_vector(endpoints=None, vec=None):
         return (o1/mag, o2/mag)
 
     return None
+
+
+def magnitude(endpoints):
+    (x1, y1), (x2, y2) = endpoints
+
+    return sqrt((x2-x1)**2 + (y2-y1)**2)
+
 
 # coords: the coordinates to translate
 # vec: the translation vector (should be a unit vector)

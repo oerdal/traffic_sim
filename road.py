@@ -5,6 +5,7 @@ class Lane:
     def __init__(self, endpoints, lane_width=LANE_WIDTH):
         self.cars = []
         self.endpoints = endpoints
+        self.length = magnitude(endpoints)
 
 
 class Road:

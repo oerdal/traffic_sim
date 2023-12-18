@@ -11,6 +11,7 @@ class Simulation:
     def __init__(self, sim_len=50):
         self.cars = []
         self.roads = []
+        self.stopped = []
         self.fps = 60
         self.ticks_since_car = 0
 
@@ -20,7 +21,7 @@ class Simulation:
             road = random.choice(self.roads)
             lane = random.choice(road.lanes)
 
-            car = Car()
+            car = Car(lane=lane)
             self.cars.append(car)
             lane.cars.append(car)
         
@@ -34,8 +35,12 @@ class Simulation:
 
 
     def update(self):
-        for car in self.cars:
-            car.update()
+        for car_id, car in enumerate(self.cars):
+            if car_id not in self.stopped:
+                if not car.update():
+                    # car has reached the end of its path
+                    self.stopped.append(car_id)
+                    car.x = car.lane.length
         
         # self.ticks_since_car += 1
         # if self.ticks_since_car >= 200:
@@ -105,7 +110,8 @@ class Window:
         for car_id, car in enumerate(self.sim.cars):
             dpg.delete_item(f'Car {car_id}')
             with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
-                dpg.draw_rectangle((car.x, 100), (car.x+car.l, 106), color=(50, 50, 50, 200), fill=(100, 50, 200, 220))
+                x, y = car.compute_pos()
+                dpg.draw_rectangle((x, y-2), (x+car.l, y+2), color=(50, 50, 50, 200), fill=(100, 50, 200, 220))
         
         self.update()
 
