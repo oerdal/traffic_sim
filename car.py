@@ -1,7 +1,7 @@
 from scipy.interpolate import interp1d
 
 class Car:
-    def __init__(self, lane):
+    def __init__(self, car_id, lane):
         # variables for the intelligent driver model
         self.v_0 = 30
         self.T = 1.5
@@ -18,6 +18,8 @@ class Car:
         self.x = 0
 
 
+        # simulation variables
+        self.car_id = car_id
         self.lane = lane
         self.unit_vec = self.lane.road.unit_vec
 

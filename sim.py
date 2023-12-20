@@ -9,11 +9,12 @@ import random
 
 class Simulation:
     def __init__(self, sim_len=50):
-        self.cars = []
+        self.cars = {}
         self.roads = []
         self.stopped = []
         self.fps = 60
         self.ticks_since_car = 0
+        self.car_id = 0
 
     
     def add_car(self):
@@ -21,9 +22,10 @@ class Simulation:
             road = random.choice(self.roads)
             lane = random.choice(road.lanes)
 
-            car = Car(lane=lane)
-            self.cars.append(car)
-            lane.cars.append(car)
+            car = Car(car_id=self.car_id, lane=lane)
+            self.cars[self.car_id] = car
+            lane.cars[self.car_id] = car
+            self.car_id += 1
         
         else:
             logging.warning('No road for car to be added to.')
@@ -35,19 +37,33 @@ class Simulation:
         self.roads.append(Road(((50, 200), (750, 400))))
         self.roads.append(Road(((1000, 200), (0, 200))))
 
+    
+    def remove_car(self, car_id):
+        car = self.cars[car_id]
+        del car.lane.cars[car_id]
+        del self.cars[car_id]
+
+
+    def clean_roads(self):
+        while self.stopped:
+            car_id = self.stopped.pop()
+            self.remove_car(car_id)
+
 
     def update(self):
-        for car_id, car in enumerate(self.cars):
+        for car_id, car in self.cars.items():
             if car_id not in self.stopped:
                 if not car.update():
                     # car has reached the end of its path
                     self.stopped.append(car_id)
                     car.x = 1.0
         
-        # self.ticks_since_car += 1
-        # if self.ticks_since_car >= 200:
-        #     self.add_car()
-        #     self.ticks_since_car = 0
+        self.clean_roads()
+        
+        self.ticks_since_car += 1
+        if self.ticks_since_car >= 200:
+            self.add_car()
+            self.ticks_since_car = 0
 
 
     def run_sim(self):
@@ -99,18 +115,19 @@ class Window:
 
 
     def render_loop(self):
+        dpg.delete_item('Canvas', children_only=True)
         # render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
-                dpg.delete_item(f'Road {road_id}.{lane_id}')
+                # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 100), thickness=LANE_WIDTH)
 
 
         # render cars
-        for car_id, car in enumerate(self.sim.cars):
-            dpg.delete_item(f'Car {car_id}')
+        for car_id, car in self.sim.cars.items():
+            # dpg.delete_item(f'Car {car_id}')
             with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
                 x1, y1 = car.compute_pos()
                 u1, u2 = car.unit_vec

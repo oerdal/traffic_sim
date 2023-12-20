@@ -3,7 +3,7 @@ from parameters import *
 
 class Lane:
     def __init__(self, endpoints, road, lane_width=LANE_WIDTH):
-        self.cars = []
+        self.cars = {}
         self.endpoints = endpoints
         self.length = magnitude(endpoints)
         self.road = road
