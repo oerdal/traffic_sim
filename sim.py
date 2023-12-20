@@ -32,6 +32,8 @@ class Simulation:
     
     def add_road(self):
         self.roads.append(Road(((0, 150), (1000, 150))))
+        self.roads.append(Road(((50, 200), (750, 400))))
+        self.roads.append(Road(((1000, 200), (0, 200))))
 
 
     def update(self):
@@ -40,7 +42,7 @@ class Simulation:
                 if not car.update():
                     # car has reached the end of its path
                     self.stopped.append(car_id)
-                    car.x = car.lane.length
+                    car.x = 1.0
         
         # self.ticks_since_car += 1
         # if self.ticks_since_car >= 200:
@@ -110,8 +112,10 @@ class Window:
         for car_id, car in enumerate(self.sim.cars):
             dpg.delete_item(f'Car {car_id}')
             with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
-                x, y = car.compute_pos()
-                dpg.draw_rectangle((x, y-2), (x+car.l, y+2), color=(50, 50, 50, 200), fill=(100, 50, 200, 220))
+                x1, y1 = car.compute_pos()
+                u1, u2 = car.unit_vec
+                x2, y2 = x1 + car.l*u1, y1 + car.l*u2
+                dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
         
         self.update()
 

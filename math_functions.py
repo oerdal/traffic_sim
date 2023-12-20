@@ -1,5 +1,16 @@
 from math import sqrt
 
+def get_unit_vec(endpoints):
+    if endpoints:
+        (x1, y1), (x2, y2) = endpoints
+        v1, v2 = x2-x1, y2-y1
+
+        mag = sqrt(v1**2 + v2**2)
+
+        return (v1/mag, v2/mag)
+
+
+
 # pass tuple of endpoints or a single displacement vector
 # currently works with 2D space coordinate space only
 def get_orthonormal_vector(endpoints=None, vec=None):

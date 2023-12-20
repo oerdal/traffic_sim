@@ -19,6 +19,8 @@ class Car:
 
 
         self.lane = lane
+        self.unit_vec = self.lane.road.unit_vec
+
         (x1, y1), (x2, y2) = self.lane.endpoints
 
         self.xpos = interp1d((0.0, 1.0), (x1, x2))
@@ -29,7 +31,7 @@ class Car:
         # we can consider x to represent the proportion of the road through
         # which the car has progressed and use interpolation to compute the
         # coordinates/position of the car relative to the entire simulation
-        return (self.xpos(self.x/self.lane.length), self.ypos(self.x/self.lane.length))
+        return (self.xpos(self.x), self.ypos(self.x))
 
 
     def update(self):
@@ -39,10 +41,10 @@ class Car:
 
         a = self.a
         v = self.v + 0.5 * (self.a + a) * delta
-        x = self.x + self.v * delta + 0.5 * self.a * delta * delta
+        x = self.x + (self.v * delta + 0.5 * self.a * delta * delta)/self.lane.length
 
         self.a = a
         self.v = v if v < self.max_v else self.max_v
         self.x = x
 
-        return self.x < self.lane.length
+        return self.x < 1.0
