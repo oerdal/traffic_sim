@@ -25,6 +25,7 @@ class Simulation:
             car = Car(car_id=self.car_id, lane=lane)
             self.cars[self.car_id] = car
             lane.cars[self.car_id] = car
+            print(f'Added car {self.car_id} to the road.')
             self.car_id += 1
         
         else:
@@ -33,15 +34,18 @@ class Simulation:
 
     
     def add_road(self):
-        self.roads.append(Road(((0, 150), (1000, 150))))
-        self.roads.append(Road(((50, 200), (750, 400))))
-        self.roads.append(Road(((1000, 200), (0, 200))))
+        self.roads.append(Road(((0, 250), (1000, 250))))
+        # self.roads.append(Road(((50, 200), (750, 400))))
+        self.roads.append(Road(((1000, 300), (0, 300))))
 
     
     def remove_car(self, car_id):
         car = self.cars[car_id]
+        if car.trail_car:
+            car.trail_car.lead_car = None
         del car.lane.cars[car_id]
         del self.cars[car_id]
+        print(f'Removed car {car.car_id} from the road.')
 
 
     def clean_roads(self):
@@ -56,12 +60,12 @@ class Simulation:
                 if not car.update():
                     # car has reached the end of its path
                     self.stopped.append(car_id)
-                    car.x = 1.0
+                    car.x = car.lane.length
         
         self.clean_roads()
         
         self.ticks_since_car += 1
-        if self.ticks_since_car >= 200:
+        if self.ticks_since_car >= 50:
             self.add_car()
             self.ticks_since_car = 0
 
@@ -83,6 +87,10 @@ class Window:
         if self.sim:
             self.sim.add_car()
 
+    
+    def handle_step(self):
+        self.render_loop()
+
 
     # initialization calls to dpg
     def setup_dpg(self):
@@ -102,6 +110,7 @@ class Window:
 
         with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+100, 50)):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
+            dpg.add_button(label='Step', callback=self.handle_step)
 
 
         
