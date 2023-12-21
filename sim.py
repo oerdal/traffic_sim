@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 
-from car import Car
+from car import Car, CarGenerator
 from road import Road
 from parameters import *
 
@@ -26,8 +26,8 @@ class Simulation:
             road = random.choice(self.roads)
             lane = random.choice(road.lanes)
 
-            car_args = self.generate_car()
-            car = Car(car_id=self.car_id, lane=lane)
+            car_args = CarGenerator.generate_car()
+            car = Car(car_args, car_id=self.car_id, lane=lane)
             self.cars[self.car_id] = car
             lane.cars[self.car_id] = car
             # print(f'Added car {self.car_id} to the road.')
@@ -71,7 +71,7 @@ class Simulation:
         self.clean_roads()
         
         self.ticks_since_car += 1
-        if self.ticks_since_car >= 50:
+        if self.ticks_since_car >= 60:
             self.add_car()
             self.ticks_since_car = 0
 

@@ -1,9 +1,10 @@
 from scipy.interpolate import interp1d
 import random
 from math import sqrt
+from parameters import *
 
 class Car:
-    def __init__(self, car_id, lane):
+    def __init__(self, car_args, car_id, lane):
         # variables for the intelligent driver model
 
         # currently all the distances and speeds are in pixels and pixels/frame
@@ -11,24 +12,24 @@ class Car:
         self.dt = 1/60 # 1/60th of a second = spf
         self.ppm = 2
 
-        self.v_0 = 30*self.ppm*self.dt # desired velocity (pixels/second)
-        self.T = 2/self.dt # desired time headway (min time to vehicle ahead)
-        self.b = 8*self.ppm*(self.dt**2) # max deceleration (comfortable)
-        self.a = 4*self.ppm*(self.dt**2)
-        self.v = 0.5*self.v_0 # cars start at half the desired velocity
-        self.x = 0
+        self.__dict__.update(**car_args)
 
-        self.max_v = 1.2*self.v_0
-        self.min_v = 0
-        # self.delta = random.choice([2, 3, 4, 5, 6])
-        self.delta = 2
-
+        self.v_0 = self.v_0*self.ppm*self.dt # desired velocity (pixels/second)
+        self.T = self.T/self.dt # desired time headway (min time to vehicle ahead)
+        self.b = self.b*self.ppm*(self.dt**2) # max deceleration (comfortable)
+        self.a = self.a*self.ppm*(self.dt**2)
+        self.v = self.v*self.v_0 # cars start at half the desired velocity
         # IF THIS NUMBER IS TOO LOW OR b IS TOO LOW, CARS WILL COLLIDE WHICH CURRENTLY CAUSES
         # ISSUES WITH DISAPPEARING VEHICLES 
-        self.s_0 = 5*self.ppm # minimum spacing (gap between car ahead)
-        self.l = 5*self.ppm
+        self.s_0 = self.s_0*self.ppm # minimum spacing (gap between car ahead)
+        self.l = self.l*self.ppm
 
-        # simulation variables
+        # initialization
+        self.x = 0
+        self.max_v = 1.2*self.v_0
+        self.min_v = 0
+
+        # simulation init
         self.car_id = car_id
         self.lane = lane
         self.unit_vec = self.lane.road.unit_vec
@@ -75,3 +76,33 @@ class Car:
 
 
         return self.x < self.lane.length
+
+
+class CarGenerator:
+    @staticmethod
+    def generate_car(random_init=True):
+        if random_init:
+            car_args = {
+                'v_0': random.gauss(V_0_MU, 1),
+                'T': random.gauss(T_MU, 0.5),
+                'b': random.gauss(B_MU, 1),
+                'a': random.gauss(A_MU, 0.5),
+                'v': random.gauss(V_MU, 0.1),
+                's_0': random.gauss(S_0_MU, 0.5),
+                'l': random.gauss(L_MU, 0.5),
+                'delta': random.gauss(DELTA_MU, 0.5)
+            }
+
+        else:
+            car_args = {
+                'v_0': V_0_MU,
+                'T': T_MU,
+                'b': B_MU,
+                'a': A_MU,
+                'v': V_MU,
+                's_0': S_0_MU,
+                'l': L_MU,
+                'delta': DELTA_MU
+            }
+        
+        return car_args
