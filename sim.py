@@ -11,10 +11,14 @@ class Simulation:
     def __init__(self, sim_len=50):
         self.cars = {}
         self.roads = []
-        self.stopped = []
+        self.dead_cars = []
         self.fps = 60
         self.ticks_since_car = 0
         self.car_id = 0
+
+
+    def generate_car(self):
+        ...
 
     
     def add_car(self):
@@ -22,10 +26,12 @@ class Simulation:
             road = random.choice(self.roads)
             lane = random.choice(road.lanes)
 
+            car_args = self.generate_car()
             car = Car(car_id=self.car_id, lane=lane)
             self.cars[self.car_id] = car
             lane.cars[self.car_id] = car
-            print(f'Added car {self.car_id} to the road.')
+            # print(f'Added car {self.car_id} to the road.')
+            # print(f'v_0: {car.v_0}, T: {car.T}, b: {car.b}, a: {car.a}, max_v: {car.max_v}')
             self.car_id += 1
         
         else:
@@ -49,17 +55,17 @@ class Simulation:
 
 
     def clean_roads(self):
-        while self.stopped:
-            car_id = self.stopped.pop()
+        while self.dead_cars:
+            car_id = self.dead_cars.pop()
             self.remove_car(car_id)
 
 
     def update(self):
         for car_id, car in self.cars.items():
-            if car_id not in self.stopped:
+            if car_id not in self.dead_cars:
                 if not car.update():
                     # car has reached the end of its path
-                    self.stopped.append(car_id)
+                    self.dead_cars.append(car_id)
                     car.x = car.lane.length
         
         self.clean_roads()
@@ -142,6 +148,9 @@ class Window:
                 u1, u2 = car.unit_vec
                 x2, y2 = x1 + car.l*u1, y1 + car.l*u2
                 dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
+                # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
+                dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
+                # dpg.draw_text((x1, y1), f'{car_id}', size=20)
         
         self.update()
 

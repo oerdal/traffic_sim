@@ -5,23 +5,28 @@ from math import sqrt
 class Car:
     def __init__(self, car_id, lane):
         # variables for the intelligent driver model
-        self.v_0 = 3 # desired velocity
-        self.T = 1 # desired time headway (min time to vehicle ahead)
-        self.max_a = 0.73 # max acceleration
-        self.b = 0.2 # max deceleration (comfortable)
-        self.max_v = 3
-        self.min_v = -1
 
-        self.delta = random.choice([2, 3, 4, 5, 6])
+        # currently all the distances and speeds are in pixels and pixels/frame
+        # let 2 pixel = 1 meter
+        self.dt = 1/60 # 1/60th of a second = spf
+        self.ppm = 2
 
-        self.s_0 = 0.005 # minimum spacing (gap between car ahead)
-        self.l = 10
-
-
-        self.a = 0.05
-        self.v = 0
+        self.v_0 = 30*self.ppm*self.dt # desired velocity (pixels/second)
+        self.T = 2/self.dt # desired time headway (min time to vehicle ahead)
+        self.b = 8*self.ppm*(self.dt**2) # max deceleration (comfortable)
+        self.a = 4*self.ppm*(self.dt**2)
+        self.v = 0.5*self.v_0 # cars start at half the desired velocity
         self.x = 0
 
+        self.max_v = 1.2*self.v_0
+        self.min_v = 0
+        # self.delta = random.choice([2, 3, 4, 5, 6])
+        self.delta = 2
+
+        # IF THIS NUMBER IS TOO LOW OR b IS TOO LOW, CARS WILL COLLIDE WHICH CURRENTLY CAUSES
+        # ISSUES WITH DISAPPEARING VEHICLES 
+        self.s_0 = 5*self.ppm # minimum spacing (gap between car ahead)
+        self.l = 5*self.ppm
 
         # simulation variables
         self.car_id = car_id
@@ -47,9 +52,7 @@ class Car:
         return (self.xpos(self.x/self.lane.length), self.ypos(self.x/self.lane.length))
 
 
-
     def update(self):
-
         # check if there is a leading car
         if self.lead_car:
             # standard IDM model
@@ -61,6 +64,7 @@ class Car:
         else:
             # free road only
             dv = self.a*(1 - (self.v/self.v_0)**self.delta)
+            # print(self.a, self.v, self.v_0, dv)
             
         dt = 1
         v = self.v + dv*dt
