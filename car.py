@@ -35,11 +35,14 @@ class Car:
         self.car_id = car_id
         self.lane = lane
 
-        lead_cars = list(self.lane.cars.values())
-        self.lead_car = lead_cars[-1] if lead_cars else None
+        self.lead_car = self.lane.last_car
+        self.lane.last_car = self
+        self.lane.cars[self.car_id] = self
         if self.lead_car:
             self.lead_car.trail_car = self
         self.trail_car = None
+
+        print(f'Added car with id: {car_id} with a lead car of {self.lead_car} and trail car of {self.trail_car}')
 
         # drawing init
         self.drawing_init()
@@ -48,6 +51,10 @@ class Car:
     def __repr__(self):
         return f'Car #{self.car_id}'
     
+
+    def get_diagnostics(self):
+        return self.__dict__
+
 
     def drawing_init(self):
         self.unit_vec = self.lane.road.unit_vec
@@ -127,14 +134,14 @@ class Car:
         curr_lane = self.lane
 
         if not direction:
-            lanes = [lane for lane in [curr_lane.prev, curr_lane.next] if lane]
+            lanes = [lane for lane in [curr_lane.prev_lane, curr_lane.next_lane] if lane]
             lane = random.choice(lanes) if lanes else None
         else:
             # car wishes to change to a specific lane
-            if direction == 'L' and lane.prev:
-                lane = lane.prev
-            elif direction == 'R' and lane.next:
-                lane = lane.prev
+            if direction == 'L' and lane.prev_lane:
+                lane = lane.prev_lane
+            elif direction == 'R' and lane.next_lane:
+                lane = lane.next_lane
             else:
                 logging.warning(f'Invalid lane change direction {direction}.')
                 lane = None
@@ -152,19 +159,57 @@ class Car:
             # do lane change
             lead, trail = can_change
 
-            # remove car from current lane
-            if self.lead_car:
-                self.lead_car.trail_car = self.trail_car
-            if self.trail_car:
-                self.trail_car.lead_car = self.lead_car
+            print(f'Lead car: {lead} and trail car: {trail}.')
+
+            ## Update the old lane and cars
+            if not(self.lead_car or self.trail_car):
+                # we are the only car
+                curr_lane.last_car = None
+            else:
+                # there is at least 1 other car in the old lane
+                if self.lead_car:
+                    if self.trail_car:
+                        # we are a central car
+                        self.lead_car.trail_car = self.trail_car
+                        self.trail_car.lead_car = self.lead_car
+                    else:
+                        # we are the rearmost car
+                        self.lead_car.trail_car = None
+                        curr_lane.last_car = self.lead_car
+
+                else:
+                    if self.trail_car:
+                        # we are the frontmost car
+                        self.trail_car.lead_car = None
             del curr_lane.cars[self.car_id]
 
-            # adjust new lane
-            self.lead_car = lead
-            self.trail_car = trail
-            if lead and trail:
-                self.lead_car.trail_car = self
-                self.trail_car.lead_car = self
+            ## Update the new lane and cars
+            if not(lead or trail):
+                # moving into an empty lane
+                lane.last_car = self
+            else:
+                # there is at least one other car in the new lane
+                if lead:
+                    if trail:
+                        # moving in between two cars
+                        lead.trail_car = self
+                        trail.lead_car = self
+                        self.lead_car = lead
+                        self.trail_car = trail
+                    
+                    else:
+                        # moving to the back of all other cars
+                        lead.trail_car = self
+                        self.lead_car = lead
+                        self.trail_car = None
+                        lane.last_car = self
+                
+                else:
+                    if trail:
+                        # moving the front of all other cars
+                        trail.lead_car = self
+                        self.lead_car = None
+                        self.trail_car = trail
             
             lane.cars[self.car_id] = self
             self.lane = lane
@@ -172,12 +217,17 @@ class Car:
             print(f'lead car: {self.lead_car} - ({self.lead_car.lead_car if self.lead_car else None}, {self.lead_car.trail_car if self.lead_car else None})')
             print(f'car: {self} - ({self.lead_car}, {self.trail_car})')
             print(f'trail car: {self.trail_car} - ({self.trail_car.lead_car if self.trail_car else None}, {self.trail_car.trail_car if self.trail_car else None})')
+            
+            print('===')
+            print(lane.cars)
+            print('===')
 
             self.drawing_init()
 
         else:
             # don't change lanes
-            ...
+            print('Couldn\'t change lanes')
+            
 
         return can_change
 

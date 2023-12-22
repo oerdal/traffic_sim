@@ -2,13 +2,15 @@ from math_functions import *
 from parameters import *
 
 class Lane:
-    def __init__(self, endpoints, road, prev=None, next=None, lane_width=LANE_WIDTH):
+    def __init__(self, endpoints, road, prev_lane=None, next_lane=None, lane_width=LANE_WIDTH):
         self.cars = {}
         self.endpoints = endpoints
         self.length = magnitude(endpoints)
         self.road = road
-        self.prev = prev
-        self.next = next
+        self.prev_lane = prev_lane
+        self.next_lane = next_lane
+
+        self.last_car = None
 
 
 class Road:
@@ -26,7 +28,7 @@ class Road:
             lane = Lane(endpoints=translate_coordinates(
                 self.key_lane.endpoints,
                 self.orthonormal,
-                scale=i*LANE_WIDTH), road=self, prev=self.lanes[-1])
-            self.lanes[-1].next = lane
+                scale=i*LANE_WIDTH), road=self, prev_lane=self.lanes[-1])
+            self.lanes[-1].next_lane = lane
             self.lanes.append(lane)
     

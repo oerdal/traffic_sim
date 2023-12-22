@@ -15,6 +15,7 @@ class Simulation:
         self.fps = 60
         self.ticks_since_car = 0
         self.car_id = 0
+        self.changed_car = None
 
 
     def generate_car(self):
@@ -29,7 +30,6 @@ class Simulation:
             car_args = CarGenerator.generate_car()
             car = Car(car_args, car_id=self.car_id, lane=lane)
             self.cars[self.car_id] = car
-            lane.cars[self.car_id] = car
             # print(f'Added car {self.car_id} to the road.')
             # print(f'v_0: {car.v_0}, T: {car.T}, b: {car.b}, a: {car.a}, max_v: {car.max_v}')
             self.car_id += 1
@@ -41,13 +41,15 @@ class Simulation:
     def change_lanes(self):
         car_id = random.choice(list(self.cars.keys()))
         print(car_id, self.cars[car_id].change_lane())
+        self.changed_car = self.cars[car_id]
+        print(self.cars)
 
     
     
     def add_road(self):
         self.roads.append(Road(((0, 250), (1000, 250))))
-        # self.roads.append(Road(((50, 200), (750, 400))))
         self.roads.append(Road(((1000, 300), (0, 300))))
+        # self.roads.append(Road(((50, 200), (750, 400))))
 
     
     def remove_car(self, car_id):
@@ -55,6 +57,7 @@ class Simulation:
         print(f'Removing car {car.car_id} with trailing car {car.trail_car}')
         if car.trail_car:
             car.trail_car.lead_car = None
+            # car.lane.last_car = car.trail_car # ISSUE HERE
             print(f'Car {car.trail_car} set the lead_car to {car.trail_car.lead_car}')
         del car.lane.cars[car_id]
         del self.cars[car_id]
@@ -113,6 +116,10 @@ class Window:
     def handle_change_lanes(self):
         if self.sim:
             self.sim.change_lanes()
+    
+    def handle_log_car(self):
+        if self.sim:
+            self.sim.changed_car = self.sim.cars[int(dpg.get_value('Log Car ID'))]
 
 
     # initialization calls to dpg
@@ -137,7 +144,10 @@ class Window:
             dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
             dpg.add_button(label='Change Lanes', callback=self.handle_change_lanes)
 
-        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 500)):
+            dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
+            dpg.add_button(label='Log Car', callback=self.handle_log_car)
+
+        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 400), width=1000):
             ...
 
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
@@ -152,10 +162,17 @@ class Window:
     def render_loop(self):
         dpg.delete_item('Canvas', children_only=True)
         dpg.delete_item('Logging', children_only=True)
+
+        if self.sim.changed_car:
+            diag = self.sim.changed_car.get_diagnostics()
+            dpg.add_text(self.sim.changed_car.car_id, parent='Logging')
+            for k, v in diag.items():
+                dpg.add_text(f'{k}: {v}', parent='Logging')
+
         # render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
-                dpg.add_text(f'{lane_id}: {lane.cars}', parent='Logging')
+                dpg.add_text(f'{lane_id} with last_car {lane.last_car}: {lane.cars}', parent='Logging')
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
