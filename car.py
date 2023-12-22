@@ -34,14 +34,23 @@ class Car:
         # simulation init
         self.car_id = car_id
         self.lane = lane
-        self.unit_vec = self.lane.road.unit_vec
-        
+
         lead_cars = list(self.lane.cars.values())
         self.lead_car = lead_cars[-1] if lead_cars else None
         if self.lead_car:
             self.lead_car.trail_car = self
         self.trail_car = None
 
+        # drawing init
+        self.drawing_init()
+
+    
+    def __repr__(self):
+        return f'Car #{self.car_id}'
+    
+
+    def drawing_init(self):
+        self.unit_vec = self.lane.road.unit_vec
         (x1, y1), (x2, y2) = self.lane.endpoints
 
         self.xpos = interp1d((0.0, 1.0), (x1, x2))
@@ -57,19 +66,61 @@ class Car:
 
     # return a tuple of the new lead and trail car if the lane is changed into
     # return None if no lane change is possible
-    # return (Car, None) if no trailing car and (None, Car) if no leading car
+    # return (Car, None) if no trailing car and (None, Car) if no leading car and (None, None) if lane empty
     def check_lane_change(self, lane):
         lookahead = self.x + self.l/2 + self.s_0
-        lookbehind = self.x - (self./2 + self.s_0)
+        lookbehind = self.x - (self.l/2 + self.s_0)
 
-        for car in lane:
-            front, rear = car.x + car.l/2, car.x - car.l/2
+        if not lane.cars:
+            return (None, None)
 
-            if (lookahead >= rear and lookahead <= front) or (lookbehind >= rear and lookbehind <= front):
-                # invalid lane change location
-                return False
-        
-        return True
+        for car in lane.cars.values():
+            front = car.x + car.l/2
+            rear = car.x - car.l/2
+
+            # 3 cases:
+            # 1) behind the rearmost car
+            # 2) in front of the frontmost car
+            # 3) between 2 cars
+
+            if lookahead < rear:
+                # behind the other car
+
+                if car.trail_car:
+                    # there is another car behind us
+                    front = car.trail_car.x + car.trail_car.l/2
+                    if lookbehind > front:
+                        # between cars
+                        return (car, car.trail_car)
+                    
+                    # can't be certain
+                    continue
+                
+                else:
+                    # behind the last car in the new lane
+                    return (car, None)
+                
+            elif lookbehind > front:
+                # ahead of the other car
+
+                if car.lead_car:
+                    # there is another car in front of us
+                    # check if we are also clear of the car in front of it
+                    rear = car.lead_car.x - car.lead_car.l/2
+
+                    if lookahead < rear:
+                        # between cars
+                        return (car.lead_car, car)
+                    
+                    # can't be certain
+                    continue
+
+                else:
+                    # ahead of the first car in the new lane
+                    return (None, car)
+
+        # not enough space   
+        return None
 
 
     def change_lane(self, direction=None):
@@ -94,10 +145,35 @@ class Car:
 
         print(f'Car {self.car_id} wishes to change lanes into lane {lane}.')
 
-        can_change = self.validate_lane_change(lane)
+        can_change = self.check_lane_change(lane)
+
         if can_change:
+            print(f'Car {self.car_id} changing lanes from {curr_lane} into lane {lane}.')
             # do lane change
-            ...
+            lead, trail = can_change
+
+            # remove car from current lane
+            if self.lead_car:
+                self.lead_car.trail_car = self.trail_car
+            if self.trail_car:
+                self.trail_car.lead_car = self.lead_car
+            del curr_lane.cars[self.car_id]
+
+            # adjust new lane
+            self.lead_car = lead
+            self.trail_car = trail
+            if lead and trail:
+                self.lead_car.trail_car = self
+                self.trail_car.lead_car = self
+            
+            lane.cars[self.car_id] = self
+            self.lane = lane
+            
+            print(f'lead car: {self.lead_car} - ({self.lead_car.lead_car if self.lead_car else None}, {self.lead_car.trail_car if self.lead_car else None})')
+            print(f'car: {self} - ({self.lead_car}, {self.trail_car})')
+            print(f'trail car: {self.trail_car} - ({self.trail_car.lead_car if self.trail_car else None}, {self.trail_car.trail_car if self.trail_car else None})')
+
+            self.drawing_init()
 
         else:
             # don't change lanes

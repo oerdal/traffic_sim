@@ -38,6 +38,11 @@ class Simulation:
             logging.warning('No road for car to be added to.')
 
 
+    def change_lanes(self):
+        car_id = random.choice(list(self.cars.keys()))
+        print(car_id, self.cars[car_id].change_lane())
+
+    
     
     def add_road(self):
         self.roads.append(Road(((0, 250), (1000, 250))))
@@ -47,11 +52,13 @@ class Simulation:
     
     def remove_car(self, car_id):
         car = self.cars[car_id]
+        print(f'Removing car {car.car_id} with trailing car {car.trail_car}')
         if car.trail_car:
             car.trail_car.lead_car = None
+            print(f'Car {car.trail_car} set the lead_car to {car.trail_car.lead_car}')
         del car.lane.cars[car_id]
         del self.cars[car_id]
-        print(f'Removed car {car.car_id} from the road.')
+        # print(f'Removed car {car.car_id} from the road.')
 
 
     def clean_roads(self):
@@ -96,6 +103,16 @@ class Window:
     
     def handle_step(self):
         self.render_loop()
+    
+
+    def handle_step_100(self):
+        for _ in range(100):
+            self.handle_step()
+    
+
+    def handle_change_lanes(self):
+        if self.sim:
+            self.sim.change_lanes()
 
 
     # initialization calls to dpg
@@ -117,9 +134,12 @@ class Window:
         with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+100, 50)):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Step', callback=self.handle_step)
+            dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
+            dpg.add_button(label='Change Lanes', callback=self.handle_change_lanes)
 
+        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 500)):
+            ...
 
-        
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
 
     
@@ -131,14 +151,15 @@ class Window:
 
     def render_loop(self):
         dpg.delete_item('Canvas', children_only=True)
+        dpg.delete_item('Logging', children_only=True)
         # render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
+                dpg.add_text(f'{lane_id}: {lane.cars}', parent='Logging')
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 100), thickness=LANE_WIDTH)
-
 
         # render cars
         for car_id, car in self.sim.cars.items():
@@ -149,8 +170,8 @@ class Window:
                 x2, y2 = x1 + car.l*u1, y1 + car.l*u2
                 dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
                 # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
-                dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
-                # dpg.draw_text((x1, y1), f'{car_id}', size=20)
+                # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
+                dpg.draw_text((x1, y1), f'{car_id}', size=10)
         
         self.update()
 
