@@ -3,6 +3,8 @@ import random
 from math import sqrt
 from parameters import *
 
+import logging
+
 class Car:
     def __init__(self, car_args, car_id, lane):
         # variables for the intelligent driver model
@@ -51,6 +53,59 @@ class Car:
         # which the car has progressed and use interpolation to compute the
         # coordinates/position of the car relative to the entire simulation
         return (self.xpos(self.x/self.lane.length), self.ypos(self.x/self.lane.length))
+    
+
+    # return a tuple of the new lead and trail car if the lane is changed into
+    # return None if no lane change is possible
+    # return (Car, None) if no trailing car and (None, Car) if no leading car
+    def check_lane_change(self, lane):
+        lookahead = self.x + self.l/2 + self.s_0
+        lookbehind = self.x - (self./2 + self.s_0)
+
+        for car in lane:
+            front, rear = car.x + car.l/2, car.x - car.l/2
+
+            if (lookahead >= rear and lookahead <= front) or (lookbehind >= rear and lookbehind <= front):
+                # invalid lane change location
+                return False
+        
+        return True
+
+
+    def change_lane(self, direction=None):
+        curr_lane = self.lane
+
+        if not direction:
+            lanes = [lane for lane in [curr_lane.prev, curr_lane.next] if lane]
+            lane = random.choice(lanes) if lanes else None
+        else:
+            # car wishes to change to a specific lane
+            if direction == 'L' and lane.prev:
+                lane = lane.prev
+            elif direction == 'R' and lane.next:
+                lane = lane.prev
+            else:
+                logging.warning(f'Invalid lane change direction {direction}.')
+                lane = None
+        
+        if not lane:
+            # no available lane to move into
+            return False
+
+        print(f'Car {self.car_id} wishes to change lanes into lane {lane}.')
+
+        can_change = self.validate_lane_change(lane)
+        if can_change:
+            # do lane change
+            ...
+
+        else:
+            # don't change lanes
+            ...
+
+        return can_change
+
+
 
 
     def update(self):
