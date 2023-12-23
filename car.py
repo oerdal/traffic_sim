@@ -187,6 +187,8 @@ class Car:
             if not(lead or trail):
                 # moving into an empty lane
                 lane.last_car = self
+                self.lead_car = None
+                self.trail_car = None
             else:
                 # there is at least one other car in the new lane
                 if lead:

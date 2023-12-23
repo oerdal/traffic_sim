@@ -14,6 +14,7 @@ class Simulation:
         self.dead_cars = []
         self.fps = 60
         self.ticks_since_car = 0
+        self.ticks_since_lane_change = 0
         self.car_id = 0
         self.changed_car = None
 
@@ -82,9 +83,14 @@ class Simulation:
         self.clean_roads()
         
         self.ticks_since_car += 1
-        if self.ticks_since_car >= 60:
+        if self.ticks_since_car >= 100:
             self.add_car()
             self.ticks_since_car = 0
+        
+        self.ticks_since_lane_change += 1
+        if self.ticks_since_lane_change >= 400:
+            self.change_lanes()
+            self.ticks_since_lane_change = 0
 
 
     def run_sim(self):
