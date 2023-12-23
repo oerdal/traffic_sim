@@ -13,3 +13,9 @@ The eventual testing will be approached from a "Mythbusters" perspective, target
 * Speeding up to let a driver merge behind is better than slowing down to let them merge ahead
 
 ... and other questions as they appear.
+
+## Current Working Product
+
+![Demo Screenshot](./traffic_sim_demo.png)
+
+Traffic moves across lanes with periodically spawning cars that change lanes occasionally. Contains basic logging functionality to view car numbers and information about specific cars such as their kinematic and simulation information.

@@ -42,8 +42,6 @@ class Car:
             self.lead_car.trail_car = self
         self.trail_car = None
 
-        print(f'Added car with id: {car_id} with a lead car of {self.lead_car} and trail car of {self.trail_car}')
-
         # drawing init
         self.drawing_init()
 
@@ -150,16 +148,11 @@ class Car:
             # no available lane to move into
             return False
 
-        print(f'Car {self.car_id} wishes to change lanes into lane {lane}.')
-
         can_change = self.check_lane_change(lane)
 
         if can_change:
-            print(f'Car {self.car_id} changing lanes from {curr_lane} into lane {lane}.')
             # do lane change
             lead, trail = can_change
-
-            print(f'Lead car: {lead} and trail car: {trail}.')
 
             ## Update the old lane and cars
             if not(self.lead_car or self.trail_car):
@@ -215,22 +208,13 @@ class Car:
             
             lane.cars[self.car_id] = self
             self.lane = lane
-            
-            print(f'lead car: {self.lead_car} - ({self.lead_car.lead_car if self.lead_car else None}, {self.lead_car.trail_car if self.lead_car else None})')
-            print(f'car: {self} - ({self.lead_car}, {self.trail_car})')
-            print(f'trail car: {self.trail_car} - ({self.trail_car.lead_car if self.trail_car else None}, {self.trail_car.trail_car if self.trail_car else None})')
-            
-            print('===')
-            print(lane.cars)
-            print('===')
 
             self.drawing_init()
 
         else:
             # don't change lanes
-            print('Couldn\'t change lanes')
+            ...
             
-
         return can_change
 
 
@@ -244,11 +228,9 @@ class Car:
             s_star = self.s_0 + max(0, self.v*self.T + (self.v*delta_v)/(2*sqrt(self.a*self.b)))
             s = self.lead_car.x - self.x
             dv = self.a*(1 - (self.v/self.v_0)**self.delta - (s_star/s)**2) if s != 0 else 0
-            # print(f'Car {self.car_id} || delta_v: {delta_v} || s_star: {s_star} || s: {s} || v: {self.v}')
         else:
             # free road only
             dv = self.a*(1 - (self.v/self.v_0)**self.delta)
-            # print(self.a, self.v, self.v_0, dv)
             
         dt = 1
         v = self.v + dv*dt

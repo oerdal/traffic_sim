@@ -16,7 +16,7 @@ class Simulation:
         self.ticks_since_car = 0
         self.ticks_since_lane_change = 0
         self.car_id = 0
-        self.changed_car = None
+        self.focused_car = None
 
 
     def generate_car(self):
@@ -31,8 +31,6 @@ class Simulation:
             car_args = CarGenerator.generate_car()
             car = Car(car_args, car_id=self.car_id, lane=lane)
             self.cars[self.car_id] = car
-            # print(f'Added car {self.car_id} to the road.')
-            # print(f'v_0: {car.v_0}, T: {car.T}, b: {car.b}, a: {car.a}, max_v: {car.max_v}')
             self.car_id += 1
         
         else:
@@ -41,11 +39,7 @@ class Simulation:
 
     def change_lanes(self):
         car_id = random.choice(list(self.cars.keys()))
-        print(car_id, self.cars[car_id].change_lane())
-        self.changed_car = self.cars[car_id]
-        print(self.cars)
 
-    
     
     def add_road(self):
         self.roads.append(Road(((0, 250), (1000, 250))))
@@ -55,15 +49,12 @@ class Simulation:
     
     def remove_car(self, car_id):
         car = self.cars[car_id]
-        print(f'Removing car {car.car_id} with trailing car {car.trail_car}')
         if car.trail_car:
             car.trail_car.lead_car = None
-            print(f'Car {car.trail_car} set the lead_car to {car.trail_car.lead_car}')
         else:
             car.lane.last_car = None # ISSUE HERE
         del car.lane.cars[car_id]
         del self.cars[car_id]
-        # print(f'Removed car {car.car_id} from the road.')
 
 
     def clean_roads(self):
@@ -100,10 +91,14 @@ class Simulation:
 
 class Window:
     def __init__(self):
-        # initialize
+        # config init
+        self.show_car_ids = False
+
+        # visualization initialization
         self.setup_dpg()
         self.setup_canvas()
         self.setup_sim()
+
     
 
     def handle_add_car(self):
@@ -123,10 +118,15 @@ class Window:
     def handle_change_lanes(self):
         if self.sim:
             self.sim.change_lanes()
+
+
+    def handle_toggle_car_ids(self):
+        self.show_car_ids = not self.show_car_ids
+
     
     def handle_log_car(self):
         if self.sim:
-            self.sim.changed_car = self.sim.cars[int(dpg.get_value('Log Car ID'))]
+            self.sim.focused_car = self.sim.cars[int(dpg.get_value('Log Car ID'))]
 
 
     # initialization calls to dpg
@@ -143,13 +143,13 @@ class Window:
 
         dpg.set_primary_window('Canvas', True)
         # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size(window)
-        # print(self.CANVAS_HEIGHT)
 
-        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+100, 50)):
+        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+50, 50), width=200):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Step', callback=self.handle_step)
             dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
             dpg.add_button(label='Change Lanes', callback=self.handle_change_lanes)
+            dpg.add_button(label='Toggle Car IDs', callback=self.handle_toggle_car_ids)
 
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
@@ -170,9 +170,9 @@ class Window:
         dpg.delete_item('Canvas', children_only=True)
         dpg.delete_item('Logging', children_only=True)
 
-        if self.sim.changed_car:
-            diag = self.sim.changed_car.get_diagnostics()
-            dpg.add_text(self.sim.changed_car.car_id, parent='Logging')
+        if self.sim.focused_car:
+            diag = self.sim.focused_car.get_diagnostics()
+            dpg.add_text(self.sim.focused_car.car_id, parent='Logging')
             for k, v in diag.items():
                 dpg.add_text(f'{k}: {v}', parent='Logging')
 
@@ -195,7 +195,8 @@ class Window:
                 dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
                 # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
                 # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
-                dpg.draw_text((x1, y1), f'{car_id}', size=10)
+                if self.show_car_ids:
+                    dpg.draw_text((x1, y1), f'{car_id}', size=10)
         
         self.update()
 
@@ -215,7 +216,7 @@ class Window:
             
             self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
             self.render_loop()
-            # print('hi')
+
             dpg.render_dearpygui_frame()
 
         dpg.destroy_context()
