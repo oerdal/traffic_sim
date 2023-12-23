@@ -57,8 +57,9 @@ class Simulation:
         print(f'Removing car {car.car_id} with trailing car {car.trail_car}')
         if car.trail_car:
             car.trail_car.lead_car = None
-            # car.lane.last_car = car.trail_car # ISSUE HERE
             print(f'Car {car.trail_car} set the lead_car to {car.trail_car.lead_car}')
+        else:
+            car.lane.last_car = None # ISSUE HERE
         del car.lane.cars[car_id]
         del self.cars[car_id]
         # print(f'Removed car {car.car_id} from the road.')
@@ -147,7 +148,7 @@ class Window:
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
 
-        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 400), width=1000):
+        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 400), width=1200, height=500):
             ...
 
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
