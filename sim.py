@@ -140,7 +140,7 @@ class Window:
     # initialization calls to dpg
     def setup_dpg(self):
         dpg.create_context()
-        dpg.create_viewport(title='Traffic Sim', width=1500, height=1200)
+        dpg.create_viewport(title='Traffic Sim', width=CANVAS_WIDTH, height=CANVAS_HEIGHT)
         dpg.setup_dearpygui()
     
 
@@ -152,7 +152,7 @@ class Window:
         dpg.set_primary_window('Canvas', True)
         # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size(window)
 
-        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH+50, 50), width=200):
+        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 50), width=200):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Step', callback=self.handle_step)
             dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
@@ -162,7 +162,7 @@ class Window:
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
 
-        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(50, 750), width=1200, height=400):
+        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(50, 750), width=CANVAS_WIDTH-100, height=400):
             ...
 
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
@@ -178,20 +178,21 @@ class Window:
         dpg.delete_item('Canvas', children_only=True)
         dpg.delete_item('Logging', children_only=True)
 
+        # LOGGING
         if self.sim.focused_car:
             diag = self.sim.focused_car.get_diagnostics()
             dpg.add_text(self.sim.focused_car.car_id, parent='Logging')
-            for k, v in diag.items():
-                dpg.add_text(f'{k}: {v}', parent='Logging')
+            for car_id in diag.values():
+                dpg.add_text(car_id, parent='Logging')
 
         # render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
-                dpg.add_text(f'{lane_id} with last_car {lane.last_car}: {lane.cars}', parent='Logging')
+                dpg.add_text(f'Lane {road_id}-{lane_id}: {[car_id for car_id in lane.cars.values()]}', parent='Logging')
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
-                    dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 200), thickness=LANE_WIDTH)
+                    dpg.draw_line((x1, y1), (x2, y2), color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                 
                 # render cars
                 for car_id, car in lane.cars.items():
@@ -222,7 +223,7 @@ class Window:
             # insert here any code you would like to run in the render loop
             # you can manually stop by using stop_dearpygui()
             
-            self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
+            # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
             self.render_loop()
 
             dpg.render_dearpygui_frame()
