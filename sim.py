@@ -39,12 +39,20 @@ class Simulation:
 
     def change_lanes(self):
         car_id = random.choice(list(self.cars.keys()))
+        self.cars[car_id].change_lane()
 
     
     def add_road(self):
+        # horizontal roads
         self.roads.append(Road(((0, 250), (1000, 250))))
         self.roads.append(Road(((1000, 300), (0, 300))))
-        # self.roads.append(Road(((50, 200), (750, 400))))
+
+        # vertical roads
+        self.roads.append(Road(((500, 50), (500, 650))))
+        self.roads.append(Road(((550, 650), (550, 50))))
+
+        # diagonal road
+        self.roads.append(Road(((50, 200), (750, 500))))
 
     
     def remove_car(self, car_id):
@@ -132,7 +140,7 @@ class Window:
     # initialization calls to dpg
     def setup_dpg(self):
         dpg.create_context()
-        dpg.create_viewport(title='Traffic Sim')
+        dpg.create_viewport(title='Traffic Sim', width=1500, height=1200)
         dpg.setup_dearpygui()
     
 
@@ -154,7 +162,7 @@ class Window:
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
 
-        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(0, 400), width=1200, height=500):
+        with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(50, 750), width=1200, height=400):
             ...
 
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
@@ -183,20 +191,20 @@ class Window:
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
-                    dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 100), thickness=LANE_WIDTH)
-
-        # render cars
-        for car_id, car in self.sim.cars.items():
-            # dpg.delete_item(f'Car {car_id}')
-            with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
-                x1, y1 = car.compute_pos()
-                u1, u2 = car.unit_vec
-                x2, y2 = x1 + car.l*u1, y1 + car.l*u2
-                dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
-                # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
-                # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
-                if self.show_car_ids:
-                    dpg.draw_text((x1, y1), f'{car_id}', size=10)
+                    dpg.draw_line((x1, y1), (x2, y2), color=(230, 230, 230, 200), thickness=LANE_WIDTH)
+                
+                # render cars
+                for car_id, car in lane.cars.items():
+                    # dpg.delete_item(f'Car {car_id}')
+                    with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
+                        x1, y1 = car.compute_pos()
+                        u1, u2 = car.unit_vec
+                        x2, y2 = x1 + car.l*u1, y1 + car.l*u2
+                        dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
+                        # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
+                        # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
+                        if self.show_car_ids:
+                            dpg.draw_text((x1, y1), f'{car_id}', size=10)
         
         self.update()
 

@@ -47,7 +47,7 @@ class Car:
 
     
     def __repr__(self):
-        return f'Car #{self.car_id}'
+        return str(self.car_id)
     
 
     def get_diagnostics(self):
