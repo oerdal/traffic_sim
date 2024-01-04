@@ -18,10 +18,6 @@ class Simulation:
         self.car_id = 0
         self.focused_car = None
 
-
-    def generate_car(self):
-        ...
-
     
     def add_car(self):
         if self.roads:
@@ -29,10 +25,23 @@ class Simulation:
             lane = random.choice(road.lanes)
 
             car_args = CarGenerator.generate_car()
-            car = Car(car_args, car_id=self.car_id, lane=lane)
-            self.cars[self.car_id] = car
-            self.car_id += 1
-        
+
+            # check if we can add a car to this lane without causing an accident
+            if lane.last_car:
+                if lane.last_car.x - lane.last_car.l/2 > car_args['l']/2*PPM + car_args['s_0']*PPM:
+                    # can add
+                    car = Car(car_args, car_id=self.car_id, lane=lane)
+                    self.cars[self.car_id] = car
+                    self.car_id += 1
+                else:
+                    ...
+                    # currently does not try to add to a different lane in the failure case.
+                    # could alternatively randomly choose another lane from the remaining lanes,
+                    # but this could break other traffic rules.
+            else:
+                car = Car(car_args, car_id=self.car_id, lane=lane)
+                self.cars[self.car_id] = car
+                self.car_id += 1
         else:
             logging.warning('No road for car to be added to.')
 
@@ -82,7 +91,7 @@ class Simulation:
         self.clean_roads()
         
         self.ticks_since_car += 1
-        if self.ticks_since_car >= 100:
+        if self.ticks_since_car >= 10*len(self.roads):
             self.add_car()
             self.ticks_since_car = 0
         

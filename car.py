@@ -12,19 +12,18 @@ class Car:
         # currently all the distances and speeds are in pixels and pixels/frame
         # let 2 pixel = 1 meter
         self.dt = 1/60 # 1/60th of a second = spf
-        self.ppm = 2
 
         self.__dict__.update(**car_args)
 
-        self.v_0 = self.v_0*self.ppm*self.dt # desired velocity (pixels/second)
+        self.v_0 = self.v_0*PPM*self.dt # desired velocity (pixels/second)
         self.T = self.T/self.dt # desired time headway (min time to vehicle ahead)
-        self.b = self.b*self.ppm*(self.dt**2) # max deceleration (comfortable)
-        self.a = self.a*self.ppm*(self.dt**2)
+        self.b = self.b*PPM*(self.dt**2) # max deceleration (comfortable)
+        self.a = self.a*PPM*(self.dt**2)
         self.v = self.v*self.v_0 # cars start at half the desired velocity
         # IF THIS NUMBER IS TOO LOW OR b IS TOO LOW, CARS WILL COLLIDE WHICH CURRENTLY CAUSES
         # ISSUES WITH DISAPPEARING VEHICLES 
-        self.s_0 = self.s_0*self.ppm # minimum spacing (gap between car ahead)
-        self.l = self.l*self.ppm
+        self.s_0 = self.s_0*PPM # minimum spacing (gap between car ahead)
+        self.l = self.l*PPM
 
         # initialization
         self.x = 0
@@ -247,6 +246,7 @@ class CarGenerator:
     @staticmethod
     def generate_car(random_init=True):
         if random_init:
+
             car_args = {
                 'v_0': random.gauss(V_0_MU, 1),
                 'T': random.gauss(T_MU, 0.5),
@@ -257,6 +257,16 @@ class CarGenerator:
                 'l': random.gauss(L_MU, 0.5),
                 'delta': random.gauss(DELTA_MU, 0.5)
             }
+
+            vehicle_f = random.choice([
+                CarGenerator.generate_sedan,
+                CarGenerator.generate_sports_car,
+                CarGenerator.generate_suv,
+                CarGenerator.generate_truck,
+                CarGenerator.generate_trailer,
+            ])
+
+            vehicle_f(car_args)
 
         else:
             car_args = {
@@ -271,3 +281,32 @@ class CarGenerator:
             }
         
         return car_args
+
+    
+    @staticmethod
+    def generate_sedan(base_args):
+        ...
+    
+
+    @staticmethod
+    def generate_sports_car(base_args):
+        base_args['a'] *= 1.2
+        base_args['v_0'] *= 1.2
+    
+
+    @staticmethod
+    def generate_suv(base_args):
+        base_args['l'] *= 1.2
+    
+
+    @staticmethod
+    def generate_truck(base_args):
+        base_args['l'] *= 1.4
+    
+
+    @staticmethod
+    def generate_trailer(base_args):
+        # trailers drive much more cautiously and are significantly longer
+        base_args['l'] *= 3
+        base_args['T'] *= 1.5
+        base_args['s_0'] *= 1.5
