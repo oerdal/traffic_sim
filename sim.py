@@ -2,26 +2,36 @@ import dearpygui.dearpygui as dpg
 
 from car import Car, CarGenerator
 from road import Road
+from junction import Junction
 from parameters import *
+
+import scenarios.scen1 as scen1
+import scenarios.scen2 as scen2
 
 import logging
 import random
 
 class Simulation:
-    def __init__(self, sim_len=50):
+    def __init__(self, scenario, sim_len=50):
         self.cars = {}
         self.roads = []
+        self.road_ends = []
         self.dead_cars = []
+        self.scenario = scenario
         self.fps = 60
         self.ticks_since_car = 0
         self.ticks_since_lane_change = 0
+
+        # autoincrement ids for retreival
         self.car_id = 0
+        # self.road_id = 0
+
         self.focused_car = None
 
     
     def add_car(self):
-        if self.roads:
-            road = random.choice(self.roads)
+        if self.road_ends:
+            road = random.choice(self.road_ends)
             lane = random.choice(road.lanes)
 
             car_args = CarGenerator.generate_car()
@@ -51,17 +61,41 @@ class Simulation:
         self.cars[car_id].change_lane()
 
     
-    def add_road(self):
-        # horizontal roads
-        self.roads.append(Road(((0, 250), (1000, 250))))
-        self.roads.append(Road(((1000, 300), (0, 300))))
+    def add_road(self, road_coords):
+        """
+        Creates and adds a new Road.
+        Returns the added Road
+        """
+        road = Road(road_coords)
+        self.roads.append(road)
+        self.road_ends.append(road)
+        return road
 
-        # vertical roads
-        self.roads.append(Road(((500, 50), (500, 650))))
-        self.roads.append(Road(((550, 650), (550, 50))))
+    
+    def append_road(self, road_coords, prev_road, pos):
+        """
+        Creates a new Road and links it to the previous Road using a Junction.
+        Returns the new Road.
+        """
+        road = Road(road_coords, junction_pos=pos)
+        self.roads.append(road)
+        junction = Junction({prev_lane: next_lane for prev_lane, next_lane in zip(prev_road.lanes, road.lanes)})
+        prev_road.next_junction = junction
+        road.prev_junction = junction
+        return road
 
-        # diagonal road
-        self.roads.append(Road(((50, 200), (750, 500))))
+    
+    def add_roads(self):
+        for road_path in self.scenario.roads:
+            if len(road_path) == 1:
+                # junctionless road
+                self.add_road(road)
+            else:
+                # combine roads with junctions
+                prev_road = self.add_road(road_path[0])
+                for i, road in enumerate(road_path[1:]):
+                    new_road = self.append_road(road, prev_road, i+1)
+                    prev_road = new_road
 
     
     def remove_car(self, car_id):
@@ -69,7 +103,7 @@ class Simulation:
         if car.trail_car:
             car.trail_car.lead_car = None
         else:
-            car.lane.last_car = None # ISSUE HERE
+            car.lane.last_car = None
         del car.lane.cars[car_id]
         del self.cars[car_id]
 
@@ -85,8 +119,14 @@ class Simulation:
             if car_id not in self.dead_cars:
                 if not car.update():
                     # car has reached the end of its path
-                    self.dead_cars.append(car_id)
-                    car.x = car.lane.length
+                    # check if there is a junction
+                    if car.lane.road.next_junction:
+                        # change to that road potentially
+                        car.cross_junction()
+                        ...
+                    else:
+                        self.dead_cars.append(car_id)
+                        car.x = car.lane.length
         
         self.clean_roads()
         
@@ -178,8 +218,9 @@ class Window:
 
     
     def setup_sim(self):
-        self.sim = Simulation()
-        self.sim.add_road()
+        scenario = scen2
+        self.sim = Simulation(scenario=scenario)
+        self.sim.add_roads()
         self.sim.add_car()
 
 

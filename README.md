@@ -36,3 +36,7 @@ Traffic moves across lanes with periodically spawning cars that change lanes occ
 * Crash/accident logging
 
 * Dynamic speed limits
+
+* Simplified system for defining road architectures
+    * Non-reliant on the visualization
+    * Potentially a list of unit vectors, lengths, and start points

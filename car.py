@@ -3,6 +3,8 @@ import random
 from math import sqrt
 from parameters import *
 
+from junction import *
+
 import logging
 
 class Car:
@@ -131,14 +133,14 @@ class Car:
         curr_lane = self.lane
 
         if not direction:
-            lanes = [lane for lane in [curr_lane.prev_lane, curr_lane.next_lane] if lane]
+            lanes = [lane for lane in [curr_lane.left_lane, curr_lane.right_lane] if lane]
             lane = random.choice(lanes) if lanes else None
         else:
             # car wishes to change to a specific lane
-            if direction == 'L' and lane.prev_lane:
-                lane = lane.prev_lane
-            elif direction == 'R' and lane.next_lane:
-                lane = lane.next_lane
+            if direction == 'L' and lane.left_lane:
+                lane = lane.left_lane
+            elif direction == 'R' and lane.right_lane:
+                lane = lane.right_lane
             else:
                 logging.warning(f'Invalid lane change direction {direction}.')
                 lane = None
@@ -217,6 +219,36 @@ class Car:
         return can_change
 
 
+    def cross_junction(self):
+        """
+        pre: the next_junction property exists and is not None
+        """
+        road = self.lane.road
+        junction = road.next_junction
+
+        if self.lane in junction.lane_map:
+            new_lane = junction.lane_map[self.lane]
+            
+            # Adjust the old lane
+            if self.trail_car:
+                self.trail_car.lead_car = None
+                self.trail_car = None
+            else:
+                self.lane.last_car = self.lead_car
+
+            del self.lane.cars[self.car_id]
+
+            # Adjust the new lane
+            if new_lane.last_car:
+                new_lane.last_car.trail_car = self
+                self.lead_car = new_lane.last_car
+                new_lane.last_car = self
+
+            new_lane.cars[self.car_id] = self
+            self.lane = new_lane
+
+            self.x = 0
+            self.drawing_init()
 
 
     def update(self):

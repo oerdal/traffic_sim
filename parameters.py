@@ -3,7 +3,7 @@ CANVAS_WIDTH = 1500
 
 LANE_WIDTH = 8
 
-PPM = 1
+PPM = 1.5
 
 V_0_MU = 30
 T_MU = 2
