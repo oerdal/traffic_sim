@@ -7,6 +7,8 @@ from parameters import *
 
 import scenarios.scen1 as scen1
 import scenarios.scen2 as scen2
+import scenarios.scen3 as scen3
+import scenarios.scen4 as scen4
 
 import logging
 import random
@@ -16,8 +18,8 @@ class Simulation:
         self.cars = {}
         self.roads = []
         self.road_ends = []
+        self.junctions = []
         self.dead_cars = []
-        self.scenario = scenario
         self.fps = 60
         self.ticks_since_car = 0
         self.ticks_since_lane_change = 0
@@ -27,6 +29,47 @@ class Simulation:
         # self.road_id = 0
 
         self.focused_car = None
+
+        self.scenario = scenario
+        # set the road map from the scenario file
+        self.parse_road_map()
+
+        print(self.road_map)
+
+    
+    def parse_road_map(self):
+        self.road_map = {}
+        
+        if self.scenario.road_map:
+            # convert the road_map string to a map
+            for road_string in self.scenario.road_map:
+                road_split = road_string.split('-')
+                if len(road_split) != 2:
+                    logging.warning(f'Invalid road map string {road_string}')
+                    continue
+                
+                out_string, in_string = road_split[0], road_split[1]
+
+                out_split = out_string.split('.')
+                in_split = in_string.split('.')
+
+                if len(out_split) != 2 or len(in_split) != 2:
+                    logging.warning(f'Invalid road map string{road_string}')
+                    continue
+                
+                out_road, out_lane = int(out_split[0]), int(out_split[1])
+                in_road, in_lane = int(in_split[0]), int(in_split[1])
+
+                if out_road not in self.road_map:
+                    self.road_map[out_road] = {}
+                
+                if out_lane not in self.road_map[out_road]:
+                    self.road_map[out_road][out_lane] = {}
+                
+                if in_road not in self.road_map[out_road][out_lane]:
+                    self.road_map[out_road][out_lane][in_road] = [in_lane]
+                else:
+                    self.road_map[out_road][out_lane][in_road].append(in_lane)
 
     
     def add_car(self):
@@ -61,41 +104,56 @@ class Simulation:
         self.cars[car_id].change_lane()
 
     
-    def add_road(self, road_coords):
+    def add_road(self, road_coords, n_lanes):
         """
         Creates and adds a new Road.
         Returns the added Road
         """
-        road = Road(road_coords)
+        road = Road(road_coords, n_lanes=n_lanes)
         self.roads.append(road)
         self.road_ends.append(road)
         return road
 
     
-    def append_road(self, road_coords, prev_road, pos):
+    def add_junction(self, out_road, out_lane, in_road, in_lane):
         """
         Creates a new Road and links it to the previous Road using a Junction.
         Returns the new Road.
         """
-        road = Road(road_coords, junction_pos=pos)
-        self.roads.append(road)
-        junction = Junction({prev_lane: next_lane for prev_lane, next_lane in zip(prev_road.lanes, road.lanes)})
-        prev_road.next_junction = junction
-        road.prev_junction = junction
-        return road
+        out_road, in_road = self.roads[out_road], self.roads[in_road]
+        out_lane, in_lane = out_road.lanes[out_lane], in_road.lanes[in_lane]
+
+        if out_lane.next_junction:
+            # there is already a junction existing for this lane - add to it
+            junction = out_lane.next_junction
+            junction.lane_map[out_lane].append(in_lane)
+        else:
+            junction = Junction({out_lane: [in_lane]})
+            out_lane.next_junction = junction
+        
+        if junction not in in_lane.prev_junctions:
+            in_lane.prev_junctions.append(junction)
+
+        self.junctions.append(junction)
+        
 
     
     def add_roads(self):
-        for road_path in self.scenario.roads:
-            if len(road_path) == 1:
-                # junctionless road
-                self.add_road(road)
-            else:
-                # combine roads with junctions
-                prev_road = self.add_road(road_path[0])
-                for i, road in enumerate(road_path[1:]):
-                    new_road = self.append_road(road, prev_road, i+1)
-                    prev_road = new_road
+        # build the roads
+        for road_id, road in enumerate(self.scenario.roads):
+            # create the new road
+            new_road = Road(road['endpoints'], n_lanes=road['n_lanes'])
+            self.roads.append(new_road)
+            if road['is_source']:
+                self.road_ends.append(new_road)
+        
+        # build the junctions and connect the roads
+        if self.road_map:
+            for out_road, out_lanes in self.road_map.items():
+                for out_lane, in_roads in out_lanes.items():
+                    for in_road, in_lanes in in_roads.items():
+                        for in_lane in in_lanes:
+                            self.add_junction(out_road, out_lane, in_road, in_lane)
 
     
     def remove_car(self, car_id):
@@ -120,7 +178,7 @@ class Simulation:
                 if not car.update():
                     # car has reached the end of its path
                     # check if there is a junction
-                    if car.lane.road.next_junction:
+                    if car.lane.next_junction:
                         # change to that road potentially
                         car.cross_junction()
                         ...
@@ -131,7 +189,7 @@ class Simulation:
         self.clean_roads()
         
         self.ticks_since_car += 1
-        if self.ticks_since_car >= 10*len(self.roads):
+        if self.ticks_since_car >= 150/len(self.road_ends):
             self.add_car()
             self.ticks_since_car = 0
         
@@ -218,7 +276,7 @@ class Window:
 
     
     def setup_sim(self):
-        scenario = scen2
+        scenario = scen4
         self.sim = Simulation(scenario=scenario)
         self.sim.add_roads()
         self.sim.add_car()
@@ -234,6 +292,14 @@ class Window:
             dpg.add_text(self.sim.focused_car.car_id, parent='Logging')
             for car_id in diag.values():
                 dpg.add_text(car_id, parent='Logging')
+
+        # render junctions
+        # for junction_id, junction in enumerate(self.sim.junctions):
+        #     for lane_id, (prev_lane, next_lane) in enumerate(junction.lane_map.items()):
+        #         (_, _), (x2, y2) = prev_lane.endpoints
+        #         (x1, y1), (_, _) = next_lane.endpoints
+        #         with dpg.draw_node(tag=f'Junction {junction_id}.{lane_id}', parent='Canvas'):
+        #             dpg.draw_line((x1, y1), (x2, y2), color=(150, 150, 150, 200), thickness=LANE_WIDTH)
 
         # render roads
         for road_id, road in enumerate(self.sim.roads):

@@ -223,11 +223,10 @@ class Car:
         """
         pre: the next_junction property exists and is not None
         """
-        road = self.lane.road
-        junction = road.next_junction
+        junction = self.lane.next_junction
 
         if self.lane in junction.lane_map:
-            new_lane = junction.lane_map[self.lane]
+            new_lane = random.choice(junction.lane_map[self.lane])
             
             # Adjust the old lane
             if self.trail_car:
@@ -244,10 +243,15 @@ class Car:
                 self.lead_car = new_lane.last_car
                 new_lane.last_car = self
 
+            # maintain position overflow
+            # self.x = self.x - self.lane.length
+
+            # reset position
+            self.x = 0
+
             new_lane.cars[self.car_id] = self
             self.lane = new_lane
 
-            self.x = 0
             self.drawing_init()
 
 

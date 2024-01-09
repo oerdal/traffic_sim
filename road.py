@@ -10,11 +10,14 @@ class Lane:
         self.left_lane = left_lane
         self.right_lane = right_lane
 
+        self.next_junction = None
+        self.prev_junctions = []
+
         self.last_car = None
 
 
 class Road:
-    def __init__(self, endpoints, junction_pos=0, n_lanes=3):
+    def __init__(self, endpoints, n_lanes=3):
         # simulation variables
         self.endpoints = endpoints
         self.n_lanes = n_lanes
@@ -26,10 +29,6 @@ class Road:
         # linkage to other classes
         self.key_lane = Lane(endpoints=endpoints, road=self)
         self.lanes = [self.key_lane]
-
-        self.next_junction = None
-        self.prev_junction = None
-        self.junction_pos = junction_pos
 
         for i in range(1, n_lanes):
             lane = Lane(endpoints=translate_coordinates(
