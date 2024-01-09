@@ -34,8 +34,6 @@ class Simulation:
         # set the road map from the scenario file
         self.parse_road_map()
 
-        print(self.road_map)
-
     
     def parse_road_map(self):
         self.road_map = {}
