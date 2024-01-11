@@ -12,6 +12,8 @@ import scenarios.scen4 as scen4
 
 import logging
 import random
+import argparse
+import time
 
 class Simulation:
     def __init__(self, scenario, sim_len=50):
@@ -186,15 +188,16 @@ class Simulation:
         
         self.clean_roads()
         
-        self.ticks_since_car += 1
-        if self.ticks_since_car >= 150/len(self.road_ends):
-            self.add_car()
-            self.ticks_since_car = 0
-        
-        self.ticks_since_lane_change += 1
-        if self.ticks_since_lane_change >= 400:
-            self.change_lanes()
-            self.ticks_since_lane_change = 0
+        if self.roads:
+            self.ticks_since_car += 1
+            if self.ticks_since_car >= 150/len(self.road_ends):
+                self.add_car()
+                self.ticks_since_car = 0
+            
+            self.ticks_since_lane_change += 1
+            if self.ticks_since_lane_change >= 400:
+                self.change_lanes()
+                self.ticks_since_lane_change = 0
 
 
     def run_sim(self):
@@ -203,20 +206,29 @@ class Simulation:
 
 
 class Window:
-    def __init__(self):
+    def __init__(self, interactive=False):
         # config init
+        self.interactive = interactive
         self.show_car_ids = False
+        self.show_mouse_pos = False
+
+        # interactive controls
+        self.active_action = None
+        self.road_origin = None
 
         # visualization initialization
         self.setup_dpg()
         self.setup_canvas()
-        self.setup_sim()
+        self.setup_sim(interactive)
 
-    
 
     def handle_add_car(self):
         if self.sim:
             self.sim.add_car()
+
+    
+    def handle_add_road(self):
+        self.active_action = 'Road'
 
     
     def handle_step(self):
@@ -237,9 +249,38 @@ class Window:
         self.show_car_ids = not self.show_car_ids
 
     
+    def handle_toggle_mouse_pos(self):
+        self.show_mouse_pos = not self.show_mouse_pos
+
+    
     def handle_log_car(self):
         if self.sim:
             self.sim.focused_car = self.sim.cars[int(dpg.get_value('Log Car ID'))]
+
+
+    # event handling
+    def handle_canvas_click(self, sender, app_data):
+        # print(f'sender: {sender}, app_data: {app_data}')
+        if app_data == 0:
+            # left click
+            self.handle_left_click()
+
+
+    def handle_left_click(self):
+        if self.active_action == 'Road':
+            # wait until the canvas is focused into if it is not already
+            # this is cruicial since the button to add a road is in a different window
+            # if no wait, the first left click will show coordinates relative to the control window
+            while not dpg.is_item_focused('Canvas'):
+                ...
+            mouse_pos = dpg.get_mouse_pos(local=False)
+            if self.road_origin:
+                # terminate road
+                print(f'{self.road_origin} - {mouse_pos}')
+                self.sim.add_road((self.road_origin, mouse_pos), 10)
+                self.road_origin = None
+            else:
+                self.road_origin = mouse_pos
 
 
     # initialization calls to dpg
@@ -250,22 +291,30 @@ class Window:
     
 
     def setup_canvas(self):
+
         # "In the case of DPG we call the operating system window the viewport and the DPG windows as windows." - DPG Docs        
-        with dpg.window(label='Main Window', tag='Canvas', no_resize=True, no_close=True, pos=(50, 50)) as window:
-            ...
+        with dpg.window(label='Main Window', tag='Canvas', no_title_bar=True, no_resize=True, no_close=True) as window:
+            dpg.add_text("Click me with any mouse button", tag="text item")
+
+        with dpg.handler_registry(tag='Canvas Click Handler'):
+            dpg.add_mouse_click_handler(callback=self.handle_canvas_click)
 
         dpg.set_primary_window('Canvas', True)
         # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size(window)
 
-        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 50), width=200):
-            dpg.add_button(label='Add Car', callback=self.handle_add_car)
+        with dpg.window(label='Moderation', tag='Moderation', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 50), width=200):
             dpg.add_button(label='Step', callback=self.handle_step)
             dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
             dpg.add_button(label='Change Lanes', callback=self.handle_change_lanes)
             dpg.add_button(label='Toggle Car IDs', callback=self.handle_toggle_car_ids)
+            dpg.add_button(label='Toggle Mouse Pos', callback=self.handle_toggle_mouse_pos)
 
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
+        
+        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 550), width=200):
+            dpg.add_button(label='Add Car', callback=self.handle_add_car)
+            dpg.add_button(label='Add Road', callback=self.handle_add_road)
 
         with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(50, 750), width=CANVAS_WIDTH-100, height=400):
             ...
@@ -273,10 +322,15 @@ class Window:
         # dpg.apply_transform('road 1', dpg.create_translation_matrix([250, 250]))
 
     
-    def setup_sim(self):
+    def setup_sim(self, interactive=False):
         scenario = scen4
         self.sim = Simulation(scenario=scenario)
-        self.sim.add_roads()
+
+        if interactive:
+            ...
+        else:
+            self.sim.add_roads()
+
         self.sim.add_car()
 
 
@@ -285,6 +339,12 @@ class Window:
         dpg.delete_item('Logging', children_only=True)
 
         # LOGGING
+        # mouse coords
+        if self.show_mouse_pos:
+            dpg.add_text(f'mouse: {dpg.get_mouse_pos(local=False)}', parent='Logging')
+
+
+        # focused car
         if self.sim.focused_car:
             diag = self.sim.focused_car.get_diagnostics()
             dpg.add_text(self.sim.focused_car.car_id, parent='Logging')
@@ -306,6 +366,7 @@ class Window:
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
+                    dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
                     dpg.draw_line((x1, y1), (x2, y2), color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                 
                 # render cars
@@ -327,6 +388,11 @@ class Window:
     def update(self):
         self.sim.update()
 
+    
+    def set_params(self):
+        dpg.split_frame()
+        self.TITLE_BAR_HEIGHT = dpg.get_text_size('')[1] + 2*DEFAULT_PADDING
+
 
     def show(self):
         dpg.show_viewport()
@@ -339,14 +405,17 @@ class Window:
             
             # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
             self.render_loop()
-
             dpg.render_dearpygui_frame()
 
         dpg.destroy_context()
 
 
 def main():
-    window = Window()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '-I', '--interactive', action='store_true')
+    args = parser.parse_args()
+
+    window = Window(args.interactive)
     window.show()
     
 
