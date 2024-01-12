@@ -274,11 +274,11 @@ class Window:
             while not dpg.is_item_focused('Canvas'):
                 ...
             mouse_pos = dpg.get_mouse_pos(local=False)
-            if self.road_origin:
+            if self.road_origin and self.road_origin != mouse_pos:
                 # terminate road
-                print(f'{self.road_origin} - {mouse_pos}')
-                self.sim.add_road((self.road_origin, mouse_pos), 10)
+                self.sim.add_road((self.road_origin, mouse_pos), int(dpg.get_value('Lane Count')))
                 self.road_origin = None
+                self.active_action = None
             else:
                 self.road_origin = mouse_pos
 
@@ -294,15 +294,24 @@ class Window:
 
         # "In the case of DPG we call the operating system window the viewport and the DPG windows as windows." - DPG Docs        
         with dpg.window(label='Main Window', tag='Canvas', no_title_bar=True, no_resize=True, no_close=True) as window:
-            dpg.add_text("Click me with any mouse button", tag="text item")
+            ...
 
-        with dpg.handler_registry(tag='Canvas Click Handler'):
-            dpg.add_mouse_click_handler(callback=self.handle_canvas_click)
+        # adjust canvas theme
+        with dpg.theme() as canvas_theme:
+            with dpg.theme_component(dpg.mvAll):
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 0, 0, category=dpg.mvThemeCat_Core)
+        
+        dpg.bind_item_theme(window, canvas_theme)
 
-        dpg.set_primary_window('Canvas', True)
+        # add click handler for interactive drawing
+        if self.interactive:
+            with dpg.handler_registry(tag='Canvas Click Handler'):
+                dpg.add_mouse_click_handler(callback=self.handle_canvas_click)
+
+        dpg.set_primary_window(window, True)
         # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size(window)
 
-        with dpg.window(label='Moderation', tag='Moderation', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 50), width=200):
+        with dpg.window(label='Moderation', tag='Moderation', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-350, 50), width=300):
             dpg.add_button(label='Step', callback=self.handle_step)
             dpg.add_button(label='Step (x100)', callback=self.handle_step_100)
             dpg.add_button(label='Change Lanes', callback=self.handle_change_lanes)
@@ -312,9 +321,10 @@ class Window:
             dpg.add_input_text(label='Log Car ID', tag='Log Car ID')
             dpg.add_button(label='Log Car', callback=self.handle_log_car)
         
-        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-250, 550), width=200):
+        with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-350, 550), width=300):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Add Road', callback=self.handle_add_road)
+            dpg.add_slider_int(label='Lane Count', tag='Lane Count', default_value=3, min_value=1, max_value=10, clamped=True)
 
         with dpg.window(label='Logging', tag='Logging', no_close=True, pos=(50, 750), width=CANVAS_WIDTH-100, height=400):
             ...
@@ -331,20 +341,21 @@ class Window:
         else:
             self.sim.add_roads()
 
-        self.sim.add_car()
-
 
     def render_loop(self):
         dpg.delete_item('Canvas', children_only=True)
         dpg.delete_item('Logging', children_only=True)
 
-        # LOGGING
-        # mouse coords
+        ## LOGGING
+        # Mouse position
         if self.show_mouse_pos:
-            dpg.add_text(f'mouse: {dpg.get_mouse_pos(local=False)}', parent='Logging')
+            with dpg.draw_node(tag='Mouse Pos', parent='Canvas'):
+                mouse_pos = dpg.get_mouse_pos(local=False)
+                dpg.draw_text((mouse_pos[0]-5, mouse_pos[1]-20), f'{mouse_pos}', size=FONT_SIZE)
+                dpg.draw_line((mouse_pos[0]-4, mouse_pos[1]-4), (mouse_pos[0]+4, mouse_pos[1]+4))
+                dpg.draw_line((mouse_pos[0]+4, mouse_pos[1]-4), (mouse_pos[0]-4, mouse_pos[1]+4))
 
-
-        # focused car
+        # Focused car details
         if self.sim.focused_car:
             diag = self.sim.focused_car.get_diagnostics()
             dpg.add_text(self.sim.focused_car.car_id, parent='Logging')
@@ -359,7 +370,7 @@ class Window:
         #         with dpg.draw_node(tag=f'Junction {junction_id}.{lane_id}', parent='Canvas'):
         #             dpg.draw_line((x1, y1), (x2, y2), color=(150, 150, 150, 200), thickness=LANE_WIDTH)
 
-        # render roads
+        # Render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
                 dpg.add_text(f'Lane {road_id}-{lane_id}: {[car_id for car_id in lane.cars.values()]}', parent='Logging')
@@ -367,9 +378,9 @@ class Window:
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
-                    dpg.draw_line((x1, y1), (x2, y2), color=(120, 120, 120, 210), thickness=LANE_WIDTH)
+                    dpg.draw_polyline([(x1, y1), (x2, y2)], color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                 
-                # render cars
+                # Render cars
                 for car_id, car in lane.cars.items():
                     # dpg.delete_item(f'Car {car_id}')
                     with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
@@ -380,17 +391,23 @@ class Window:
                         # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
                         # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
                         if self.show_car_ids:
-                            dpg.draw_text((x1, y1), f'{car_id}', size=10)
+                            dpg.draw_text((x1, y1), f'{car_id}', size=FONT_SIZE)
         
         self.update()
 
 
     def update(self):
+        """
+        Perform all simulation related updates.
+        Includes, but is not limited to: update car positions and add/change lanes of cars
+        """
         self.sim.update()
 
     
     def set_params(self):
-        dpg.split_frame()
+        """
+        Currently not used since canvas uses global mouse position.
+        """
         self.TITLE_BAR_HEIGHT = dpg.get_text_size('')[1] + 2*DEFAULT_PADDING
 
 
@@ -400,10 +417,9 @@ class Window:
         # dpg.start_dearpygui() # handles render loop
         # below replaces, start_dearpygui()
         while dpg.is_dearpygui_running():
-            # insert here any code you would like to run in the render loop
-            # you can manually stop by using stop_dearpygui()
+            # "insert here any code you would like to run in the render loop
+            # you can manually stop by using stop_dearpygui()"
             
-            # self.CANVAS_WIDTH, self.CANVAS_HEIGHT = dpg.get_item_rect_size('Canvas')
             self.render_loop()
             dpg.render_dearpygui_frame()
 
