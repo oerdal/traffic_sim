@@ -1,4 +1,5 @@
 from math import sqrt
+import numpy as np
 
 def get_unit_vec(endpoints):
     if endpoints:
@@ -49,3 +50,51 @@ def translate_coordinates(coords, vec, scale=1):
     new_coords = tuple(tuple(a+v for a, v in zip(tvec, coord)) for coord in coords)
     
     return new_coords
+    
+
+def make_141_matrix(n):
+    dim = n-2
+
+    M = np.zeros((dim, dim))
+    M += np.diag(np.full(dim, 4))
+    M += np.diag(np.ones(dim-1), 1)
+    M += np.diag(np.ones(dim-1), -1)
+
+    return M
+
+
+def make_spline_const_matrix(path):
+    x, y = [list(p) for p in zip(*path)] # unzip list of tuples
+
+    m = len(path)-2
+
+    C = np.zeros((2, m)) # transpose later
+
+    Cx = [6*v for v in x[1:-1]]
+    Cy = [6*v for v in y[1:-1]]
+
+    # set the 4 edge values
+    Cx[0] -= x[0]
+    Cx[-1] -= x[-1]
+    Cy[-1] -= y[0]
+    Cy[-1] -= y[-1]
+
+    C = np.array([Cx, Cy]).T
+
+    return C
+
+
+def cubic_spline_interpolation(path):
+    # S_i = 1/6 B_{i-1} + 2/3 B_i + 1/6 B_{i+1}
+    # where S_i is point i of the path
+    M = make_141_matrix(len(path))
+    M_inv = np.linalg.inv(M)
+
+    C = make_spline_const_matrix(path)
+
+    B_star = np.matmul(M_inv, C)
+
+    # add the edge points S_0 and S_n
+    B_star = np.concatenate((np.array([path[0]]), B_star, np.array([path[-1]])))
+
+    return B_star.tolist()
