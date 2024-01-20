@@ -76,7 +76,7 @@ def make_spline_const_matrix(path):
     # set the 4 edge values
     Cx[0] -= x[0]
     Cx[-1] -= x[-1]
-    Cy[-1] -= y[0]
+    Cy[0] -= y[0]
     Cy[-1] -= y[-1]
 
     C = np.array([Cx, Cy]).T
@@ -97,4 +97,11 @@ def cubic_spline_interpolation(path):
     # add the edge points S_0 and S_n
     B_star = np.concatenate((np.array([path[0]]), B_star, np.array([path[-1]])))
 
-    return B_star.tolist()
+    return B_star
+
+
+def trisect_line_segment(B0, B1):
+    B10 = (B1 - B0)/3
+    
+    return B0+B10, B1-B10
+    

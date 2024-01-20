@@ -141,7 +141,9 @@ class Window:
                 (x1, y1), (x2, y2) = lane.endpoints
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
-                    dpg.draw_polyline([(x1, y1), (x2, y2)], color=(120, 120, 120, 210), thickness=LANE_WIDTH)
+                    # dpg.draw_polyline(lane.path, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
+                    for p1, p2, p3, p4 in lane.beziers:
+                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                 
                 # Render cars
                 for car_id, car in lane.cars.items():
@@ -195,8 +197,9 @@ class InteractiveWindow(Window):
 
         # interactive controls
         self.active_action = None
-        self.road_origin = None
-    
+        self.road_queue = []
+
+        self.road_queue
 
     def setup_sim(self):
         self.sim = Simulation()
@@ -209,9 +212,13 @@ class InteractiveWindow(Window):
     # event handling
     def handle_canvas_click(self, sender, app_data):
         # print(f'sender: {sender}, app_data: {app_data}')
-        if app_data == 0:
-            # left click
-            self.handle_left_click()
+        match app_data:
+            case 0:
+                # left click
+                self.handle_left_click()
+            case 1:
+                # right click
+                ...
 
 
     def handle_left_click(self):
@@ -222,13 +229,14 @@ class InteractiveWindow(Window):
             while not dpg.is_item_focused('Canvas'):
                 ...
             mouse_pos = dpg.get_mouse_pos(local=False)
-            if self.road_origin and self.road_origin != mouse_pos:
+            if self.road_queue and mouse_pos == self.road_queue[-1]:
                 # terminate road
-                self.sim.add_road((self.road_origin, mouse_pos), int(dpg.get_value('Lane Count')))
-                self.road_origin = None
+                self.sim.add_roads_from_path(self.road_queue, int(dpg.get_value('Lane Count')))
+                self.road_queue = []
                 self.active_action = None
             else:
-                self.road_origin = mouse_pos
+                # add to the road queue
+                self.road_queue.append(mouse_pos)
     
 
     def setup_canvas(self):

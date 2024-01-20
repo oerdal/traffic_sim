@@ -147,6 +147,21 @@ class Simulation:
                     for in_road, in_lanes in in_roads.items():
                         for in_lane in in_lanes:
                             self.add_junction(out_road, out_lane, in_road, in_lane)
+    
+
+    def add_roads_from_path(self, path, n_lanes):
+        # path = tuple(((p0, p1) for p0, p1 in zip(path[:-1], path[1:])))
+
+        # for road_id, endpoints in enumerate(path):
+        #     # create the new road
+        #     new_road = Road(endpoints, n_lanes=n_lanes)
+        #     self.roads.append(new_road)
+
+        #     if road_id == 0:
+        #         self.road_ends.append(new_road)
+        new_road = Road(path, n_lanes=n_lanes)
+        self.roads.append(new_road)
+        self.road_ends.append(new_road)
 
     
     def remove_car(self, car_id):
