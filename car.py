@@ -3,6 +3,7 @@ import random
 from math import sqrt
 from parameters import *
 
+from math_functions import bezier_interpolation
 from junction import *
 
 import logging
@@ -61,13 +62,24 @@ class Car:
 
         self.xpos = interp1d((0.0, 1.0), (x1, x2))
         self.ypos = interp1d((0.0, 1.0), (y1, y2))
+
+        self.bezier_fxs = [(lambda a, b, c, d: (lambda t: bezier_interpolation(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
     
 
     def compute_pos(self):
         # we can consider x to represent the proportion of the road through
         # which the car has progressed and use interpolation to compute the
         # coordinates/position of the car relative to the entire simulation
-        return (self.xpos(self.x/self.lane.length), self.ypos(self.x/self.lane.length))
+        # return (self.xpos(self.x/self.lane.length), self.ypos(self.x/self.lane.length))
+        t = self.x/self.lane.length
+        # print(t, 1/len(self.beziers))
+        
+        d = t * len(self.bezier_fxs) # t / (1/len)
+        r = d % 1
+
+        bezier_pos = self.bezier_fxs[int(d)]
+
+        return bezier_pos(r)
     
 
     # return a tuple of the new lead and trail car if the lane is changed into

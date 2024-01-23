@@ -143,7 +143,8 @@ class Window:
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
                     # dpg.draw_polyline(lane.path, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                     for p1, p2, p3, p4 in lane.beziers:
-                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
+                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=(120, 120, 120, 110), thickness=LANE_WIDTH)
+
                 
                 # Render cars
                 for car_id, car in lane.cars.items():

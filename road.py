@@ -9,6 +9,8 @@ class Lane:
         self.length = magnitude(self.endpoints)
         self.road = road
         self.beziers = beziers
+        self.bezier_paths = [bezier_curve(P0, P1, P2, P3) for P0, P1, P2, P3 in beziers]
+        self.length*=len(self.bezier_paths)
         self.left_lane = left_lane
         self.right_lane = right_lane
 
