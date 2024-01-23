@@ -151,7 +151,8 @@ class Window:
                     # dpg.delete_item(f'Car {car_id}')
                     with dpg.draw_node(tag=f'Car {car_id}', parent='Canvas'):
                         x1, y1 = car.compute_pos()
-                        u1, u2 = car.unit_vec
+                        # u1, u2 = car.unit_vec
+                        u1, u2 = car.compute_orientation()
                         x2, y2 = x1 + car.l*u1, y1 + car.l*u2
                         dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
                         # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)

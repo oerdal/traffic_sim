@@ -116,5 +116,5 @@ def bezier_curve(P0, P1, P2, P3, n=100):
     return [bezier_interpolation(P0, P1, P2, P3, t) for t in ts]
 
 
-def bezier_tangent(P0, P1, P2, P3):
-    ...
+def bezier_tangent(P0, P1, P2, P3, t):
+    return 3*(1-t)**2 * (P1-P0) + 6*(1-t)*t*(P2-P1) + 3*t**2 * (P3-P2)
