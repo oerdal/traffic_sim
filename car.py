@@ -91,7 +91,7 @@ class Car:
 
         tan = bezier_tan(r)
         
-        return get_unit_vec(([0, 0], tan.tolist()))
+        return get_unit_vec(tan.tolist())
     
 
     # return a tuple of the new lead and trail car if the lane is changed into

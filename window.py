@@ -5,6 +5,7 @@ from road import Road
 from junction import Junction
 from sim import Simulation
 from parameters import *
+from math_functions import get_normal_vector
 
 import scenarios.scen1 as scen1
 import scenarios.scen2 as scen2
@@ -142,8 +143,9 @@ class Window:
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
                     # dpg.draw_polyline(lane.path, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
-                    for p1, p2, p3, p4 in lane.beziers:
-                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=(120, 120, 120, 110), thickness=LANE_WIDTH)
+                    for i, (p1, p2, p3, p4) in enumerate(lane.beziers):
+                        color = BEZIER_COLORS[i%len(BEZIER_COLORS)]
+                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=color, thickness=LANE_WIDTH)
 
                 
                 # Render cars
@@ -155,6 +157,7 @@ class Window:
                         u1, u2 = car.compute_orientation()
                         x2, y2 = x1 + car.l*u1, y1 + car.l*u2
                         dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
+
                         # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
                         # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
                         if self.show_car_ids:

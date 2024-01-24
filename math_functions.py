@@ -2,14 +2,20 @@ from math import sqrt
 import numpy as np
 
 def get_unit_vec(endpoints):
-    if endpoints:
-        (x1, y1), (x2, y2) = endpoints
+    v1, v2 = endpoints
+    if not (isinstance(v1, float) and isinstance(v2, float)):
+        (x1, y1), (x2, y2) = v1, v2
         v1, v2 = x2-x1, y2-y1
 
-        mag = sqrt(v1**2 + v2**2)
+    mag = sqrt(v1**2 + v2**2)
 
-        return (v1/mag, v2/mag)
+    return (v1/mag, v2/mag)
 
+
+def get_normal_vector(vec):
+    v1, v2 = vec
+
+    return (-v2, v1)
 
 
 # pass tuple of endpoints or a single displacement vector
@@ -19,15 +25,24 @@ def get_orthonormal_vector(endpoints=None, vec=None):
         (x1, y1), (x2, y2) = endpoints
         v1, v2 = x2-x1, y2-y1
 
-        o1, o2 =  (v2, -v1) if v1 >= 0 else (-v2, v1)
+        # o1, o2 =  (v2, -v1) if v1 >= 0 else (-v2, v1)
+        o1, o2 = -v2, v1
         mag = sqrt(o1**2 + o2**2)
 
         return (o1/mag, o2/mag)
     
+    elif isinstance(vec, np.ndarray):
+        v1, v2 = vec
+        o1, o2 = -v2, v1
+        
+        mag = sqrt(o1**2 + o2**2)
+        return [o1/mag, o2/mag]
+
     elif vec:
         v1, v2 = vec
 
-        o1, o2 =  (v2, -v1) if v1 >= 0 else (-v2, v1)
+        # o1, o2 =  (v2, -v1) if v1 >= 0 else (-v2, v1)
+        o1, o2 = -v2, v1
         mag = sqrt(o1**2 + o2**2)
 
         return (o1/mag, o2/mag)

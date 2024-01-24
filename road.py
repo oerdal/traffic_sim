@@ -42,11 +42,28 @@ class Road:
         self.key_lane = Lane(path=self.path, road=self, beziers=self.beziers)
         self.lanes = [self.key_lane]
 
-        for i in range(1, n_lanes):
-            lane = Lane(path=translate_coordinates(
-                self.key_lane.path,
-                self.orthonormal,
-                scale=i*LANE_WIDTH), road=self, beziers=self.beziers, left_lane=self.lanes[-1])
-            self.lanes[-1].right_lane = lane
-            self.lanes.append(lane)
+        if n_lanes > 1:
+            # compute the new lane data
+            key_points = path
+            key_tans = [bezier_tangent(P0, P1, P2, P3, 0) for P0, P1, P2, P3 in self.beziers]
+            key_tans.append(bezier_tangent(*self.beziers[-1], 1))
+            key_orthonorms = [get_orthonormal_vector(vec=key_tan) for key_tan in key_tans]
+
+            for i in range(1, n_lanes):
+                trans_d = [[k*i*LANE_WIDTH for k in key_orthonorm] for key_orthonorm in key_orthonorms]
+                trans_path = [[kx+kdx, ky+kdy] for (kx, ky), (kdx, kdy) in zip(key_points, trans_d)]
+                b_splines = cubic_spline_interpolation(trans_path)
+                trans_beziers = []
+                for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], trans_path[:-1], trans_path[1:]):
+                    P2, Q2 = trisect_line_segment(P2, Q2)
+                    bezier_control = np.stack((P1, P2, Q2, Q1))
+                    trans_beziers.append(bezier_control)
+
+                # recompute b_spline
+                lane = Lane(path=translate_coordinates(
+                    trans_path,
+                    self.orthonormal,
+                    scale=i*LANE_WIDTH), road=self, beziers=trans_beziers, left_lane=self.lanes[-1])
+                self.lanes[-1].right_lane = lane
+                self.lanes.append(lane)
     
