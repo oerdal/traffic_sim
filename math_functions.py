@@ -50,10 +50,15 @@ def get_orthonormal_vector(endpoints=None, vec=None):
     return None
 
 
-def magnitude(endpoints):
-    (x1, y1), (x2, y2) = endpoints
+def magnitude(endpoints=None, vec=None):
+    if not endpoints:
+        v1, v2 = vec
+        return sqrt(v1*v1 + v2*v2)
 
-    return sqrt((x2-x1)**2 + (y2-y1)**2)
+    (x1, y1), (x2, y2) = endpoints
+    v1, v2 = x2-x1, y2-y1
+
+    return sqrt(v1*v1 + v2*v2)
 
 
 # coords: the coordinates to translate

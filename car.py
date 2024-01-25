@@ -64,17 +64,12 @@ class Car:
 
         self.xpos = interp1d((0.0, 1.0), (x1, x2))
         self.ypos = interp1d((0.0, 1.0), (y1, y2))
-
-        # self.bezier_fxs = [(lambda a, b, c, d: (lambda t: bezier_interpolation(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
-        # self.bezier_tans = [(lambda a, b, c, d: (lambda t: bezier_tangent(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
     
 
     def compute_pos(self):
         # we can consider t to represent the proportion of the road through
         # which the car has progressed and use interpolation to compute the
-        # coordinates/position of the car relative to the entire simulation
-        # return (self.xpos(self.t), self.ypos(self.t))
-        
+        # coordinates/position of the car relative to the entire simulation        
         d = self.t * len(self.lane.beziers) # t / (1/len)
         r = d % 1
 

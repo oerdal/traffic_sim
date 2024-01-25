@@ -4,17 +4,18 @@ from parameters import *
 
 class Lane:
     def __init__(self, path, road, beziers, left_lane=None, right_lane=None, lane_width=LANE_WIDTH):
-        self.cars = {}
         self.path = path
-        self.endpoints = path[0], path[-1]
-        self.length = magnitude(self.endpoints)
         self.road = road
         self.beziers = beziers
+
+        self.length = sum([bezier.arclength() for bezier in self.beziers])
+        self.endpoints = path[0], path[-1]
         self.bezier_paths = [bezier.LUT() for bezier in beziers]
-        self.length*=len(self.bezier_paths)
+        
         self.left_lane = left_lane
         self.right_lane = right_lane
 
+        self.cars = {}
         self.next_junction = None
         self.prev_junctions = []
 
