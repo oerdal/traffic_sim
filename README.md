@@ -14,12 +14,17 @@ The eventual testing will be approached from a "Mythbusters" perspective, target
 
 ... and other questions as they appear.
 
+## Usage
+
+Run the file using `py window.py -i` to run in interactive mode. Currently development is focused on interactive mode, so the static scenario usage case may not function properly at the present moment.
+
 ## Current Working Product
 
 ![Demo Screenshot](./traffic_sim_demo.png)
 
 Traffic moves across lanes with periodically spawning cars that change lanes occasionally. Contains basic logging functionality to view car numbers and information about specific cars such as their kinematic and simulation information.
 
+My ongoing notes and resources for this project can be viewed at [this](https://docs.google.com/document/d/1w3tQln8fmIwiUt_5-y6z8YQ2vCFQgLFo0PGCv-kFzDc/edit?usp=sharing) Google Docs link.
 
 ## TODO:
 

@@ -35,6 +35,11 @@ class Window:
         else:
             P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
         dpg.draw_bezier_cubic(P0, P1, P2, P3, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
+    
+
+    def draw_crosshair(self, x, y):
+        dpg.draw_line((x, y-4), (x, y+5))
+        dpg.draw_line((x-4, y), (x+5, y))
 
 
     def handle_add_car(self):
@@ -125,8 +130,7 @@ class Window:
             with dpg.draw_node(tag='Mouse Pos', parent='Canvas'):
                 mouse_pos = dpg.get_mouse_pos(local=False)
                 dpg.draw_text((mouse_pos[0]-5, mouse_pos[1]-20), f'{mouse_pos}', size=FONT_SIZE)
-                dpg.draw_line((mouse_pos[0]-4, mouse_pos[1]-4), (mouse_pos[0]+4, mouse_pos[1]+4))
-                dpg.draw_line((mouse_pos[0]+4, mouse_pos[1]-4), (mouse_pos[0]-4, mouse_pos[1]+4))
+                self.draw_crosshair(mouse_pos[0], mouse_pos[1])
 
         # Focused car details
         if self.sim.focused_car:
@@ -214,7 +218,6 @@ class InteractiveWindow(Window):
         self.active_action = None
         self.road_queue = []
 
-        self.road_queue
 
     def setup_sim(self):
         self.sim = Simulation()
@@ -233,7 +236,7 @@ class InteractiveWindow(Window):
                 self.handle_left_click()
             case 1:
                 # right click
-                ...
+                self.handle_right_click()
 
 
     def handle_left_click(self):
@@ -252,7 +255,22 @@ class InteractiveWindow(Window):
             else:
                 # add to the road queue
                 self.road_queue.append(mouse_pos)
+                
     
+    def handle_right_click(self):
+        if self.active_action == 'Road':
+            self.road_queue = []
+            self.active_action = None
+    
+
+    def render_loop(self):
+        super().render_loop()
+
+        if self.road_queue:
+            with dpg.draw_node(tag=f'Draw Queue', parent='Canvas'):
+                for x, y in self.road_queue:
+                    self.draw_crosshair(x, y)
+
 
     def setup_canvas(self):
         super().setup_canvas()
@@ -264,7 +282,6 @@ class InteractiveWindow(Window):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Add Road', callback=self.handle_add_road)
             dpg.add_slider_int(label='Lane Count', tag='Lane Count', default_value=3, min_value=1, max_value=10, clamped=True)
-
 
 
 def main():
