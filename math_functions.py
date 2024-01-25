@@ -120,16 +120,3 @@ def trisect_line_segment(B0, B1):
     
     return B0+B10, B1-B10
     
-
-def bezier_interpolation(P0, P1, P2, P3, t):
-    return (1-t)**3 * P0 + 3*t*(1-t)**2 * P1 + 3*t**2 *(1-t) * P2 + t**3 * P3
-
-
-def bezier_curve(P0, P1, P2, P3, n=100):
-    ts = np.linspace(0, 1, n)
-
-    return [bezier_interpolation(P0, P1, P2, P3, t) for t in ts]
-
-
-def bezier_tangent(P0, P1, P2, P3, t):
-    return 3*(1-t)**2 * (P1-P0) + 6*(1-t)*t*(P2-P1) + 3*t**2 * (P3-P2)

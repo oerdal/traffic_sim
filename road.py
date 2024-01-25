@@ -1,4 +1,5 @@
 from math_functions import *
+from bezier import Bezier
 from parameters import *
 
 class Lane:
@@ -9,7 +10,7 @@ class Lane:
         self.length = magnitude(self.endpoints)
         self.road = road
         self.beziers = beziers
-        self.bezier_paths = [bezier_curve(P0, P1, P2, P3) for P0, P1, P2, P3 in beziers]
+        self.bezier_paths = [bezier.LUT() for bezier in beziers]
         self.length*=len(self.bezier_paths)
         self.left_lane = left_lane
         self.right_lane = right_lane
@@ -28,8 +29,9 @@ class Road:
         self.beziers = []
         for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], self.path[:-1], self.path[1:]):
             P2, Q2 = trisect_line_segment(P2, Q2)
-            bezier_control = np.stack((P1, P2, Q2, Q1))
-            self.beziers.append(bezier_control)
+            P1, Q1 = np.array(P1), np.array(Q1)
+            bezier = Bezier(P1, P2, Q2, Q1)
+            self.beziers.append(bezier)
             
         self.endpoints = path[0], path[-1]
         self.n_lanes = n_lanes
@@ -43,6 +45,7 @@ class Road:
         self.lanes = [self.key_lane]
 
         if n_lanes > 1:
+            pass
             # compute the new lane data
             key_points = path
             key_tans = [bezier_tangent(P0, P1, P2, P3, 0) for P0, P1, P2, P3 in self.beziers]

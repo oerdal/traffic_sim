@@ -143,9 +143,10 @@ class Window:
                 with dpg.draw_node(tag=f'Road {road_id}.{lane_id}', parent='Canvas'):
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
                     # dpg.draw_polyline(lane.path, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
-                    for i, (p1, p2, p3, p4) in enumerate(lane.beziers):
+                    for i, bezier in enumerate(lane.beziers):
+                        P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
                         color = BEZIER_COLORS[i%len(BEZIER_COLORS)]
-                        dpg.draw_bezier_cubic(p1, p2, p3, p4, color=color, thickness=LANE_WIDTH)
+                        dpg.draw_bezier_cubic(P0, P1, P2, P3, color=color, thickness=LANE_WIDTH)
 
                 
                 # Render cars
@@ -155,7 +156,9 @@ class Window:
                         x1, y1 = car.compute_pos()
                         # u1, u2 = car.unit_vec
                         u1, u2 = car.compute_orientation()
-                        x2, y2 = x1 + car.l*u1, y1 + car.l*u2
+                        l = car.l/2
+                        x1, y1, x2, y2 = x1 - l*u1, y1 - l*u2, x1 + l*u1, y1 + l*u2
+                        
                         dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
 
                         # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)

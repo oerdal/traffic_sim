@@ -3,7 +3,8 @@ import random
 from math import sqrt
 from parameters import *
 
-from math_functions import get_unit_vec, bezier_interpolation, bezier_tangent
+from bezier import Bezier
+from math_functions import get_unit_vec
 from junction import *
 
 import logging
@@ -64,30 +65,29 @@ class Car:
         self.xpos = interp1d((0.0, 1.0), (x1, x2))
         self.ypos = interp1d((0.0, 1.0), (y1, y2))
 
-        self.bezier_fxs = [(lambda a, b, c, d: (lambda t: bezier_interpolation(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
-        self.bezier_tans = [(lambda a, b, c, d: (lambda t: bezier_tangent(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
+        # self.bezier_fxs = [(lambda a, b, c, d: (lambda t: bezier_interpolation(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
+        # self.bezier_tans = [(lambda a, b, c, d: (lambda t: bezier_tangent(a, b, c, d, t)))(P0, P1, P2, P3) for P0, P1, P2, P3 in self.lane.beziers]
     
 
     def compute_pos(self):
-        # we can consider x to represent the proportion of the road through
+        # we can consider t to represent the proportion of the road through
         # which the car has progressed and use interpolation to compute the
         # coordinates/position of the car relative to the entire simulation
         # return (self.xpos(self.t), self.ypos(self.t))
-        # print(t, 1/len(self.beziers))
         
-        d = self.t * len(self.bezier_fxs) # t / (1/len)
+        d = self.t * len(self.lane.beziers) # t / (1/len)
         r = d % 1
 
-        bezier_pos = self.bezier_fxs[int(d)]
+        bezier_pos = self.lane.beziers[int(d)].interpolate
 
         return bezier_pos(r)
     
 
     def compute_orientation(self):
-        d = self.t * len(self.bezier_tans) # t / (1/len)
+        d = self.t * len(self.lane.beziers) # t / (1/len)
         r = d % 1
 
-        bezier_tan = self.bezier_tans[int(d)]
+        bezier_tan = self.lane.beziers[int(d)].tangent
 
         tan = bezier_tan(r)
         
