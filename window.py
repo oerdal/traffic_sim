@@ -6,6 +6,7 @@ from junction import Junction
 from sim import Simulation
 from parameters import *
 from math_functions import get_normal_vector
+from bezier import Bezier, LinearBezier
 
 import scenarios.scen1 as scen1
 import scenarios.scen2 as scen2
@@ -26,6 +27,14 @@ class Window:
         # visualization initialization
         self.setup_dpg()
         self.setup_canvas()
+
+
+    def draw_bezier(self, bezier):
+        if isinstance(bezier, LinearBezier):
+            P0, P1, P2, P3 = bezier.P0, bezier.P0, bezier.P1, bezier.P1
+        else:
+            P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
+        dpg.draw_bezier_cubic(P0, P1, P2, P3, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
 
 
     def handle_add_car(self):
@@ -144,9 +153,7 @@ class Window:
                     dpg.add_text(f'({x1}, {y1}), ({x2}, {y2})', parent='Logging')
                     # dpg.draw_polyline(lane.path, color=(120, 120, 120, 210), thickness=LANE_WIDTH)
                     for i, bezier in enumerate(lane.beziers):
-                        P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
-                        color = BEZIER_COLORS[i%len(BEZIER_COLORS)]
-                        dpg.draw_bezier_cubic(P0, P1, P2, P3, color=color, thickness=LANE_WIDTH)
+                        self.draw_bezier(bezier)
 
                 
                 # Render cars

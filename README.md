@@ -27,7 +27,7 @@ Traffic moves across lanes with periodically spawning cars that change lanes occ
 
 * Lights & signs
 
-* Curving roads
+* ~~Curving roads~~ - Partially working
 
 * More involved car generation
     * Driver agents
@@ -37,6 +37,6 @@ Traffic moves across lanes with periodically spawning cars that change lanes occ
 
 * Dynamic speed limits
 
-* Simplified system for defining road architectures
+* ~~Simplified system for defining road architectures~~ - Interactive definition!
     * Non-reliant on the visualization
     * Potentially a list of unit vectors, lengths, and start points
