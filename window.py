@@ -25,8 +25,9 @@ class Window:
         self.show_mouse_pos = False
 
         # visualization initialization
-        self.setup_dpg()
-        self.setup_canvas()
+        # rewriting this form to solve inheritence issue
+        Window.setup_dpg(self)
+        Window.setup_canvas(self)
 
 
     def draw_bezier(self, bezier):
@@ -150,6 +151,8 @@ class Window:
         # Render roads
         for road_id, road in enumerate(self.sim.roads):
             for lane_id, lane in enumerate(road.lanes):
+                if lane.is_key:
+                    continue
                 dpg.add_text(f'Lane {road_id}-{lane_id}: {[car_id for car_id in lane.cars.values()]}', parent='Logging')
                 # dpg.delete_item(f'Road {road_id}.{lane_id}')
                 (x1, y1), (x2, y2) = lane.endpoints
@@ -218,13 +221,19 @@ class InteractiveWindow(Window):
         self.active_action = None
         self.road_queue = []
 
+        self.build_wheel = ['Road', 'Junction']
+        self.build_wheel_idx = 0
+
+        self.setup_canvas()
+
+
 
     def setup_sim(self):
         self.sim = Simulation()
     
 
     def handle_add_road(self):
-        self.active_action = 'Road'
+        self.active_action = 'Build'
 
 
     # event handling
@@ -238,9 +247,21 @@ class InteractiveWindow(Window):
                 # right click
                 self.handle_right_click()
 
+    
+    def handle_key_press(self, sender, app_data):
+        match app_data:
+            case 65:
+                # a
+                self.build_wheel_idx = (self.build_wheel_idx - 1) % len(self.build_wheel)
+            case 68:
+                # d
+                self.build_wheel_idx = (self.build_wheel_idx + 1) % len(self.build_wheel)
+        
+        dpg.set_value('Current Structure', f'Current Structure: {self.build_wheel[self.build_wheel_idx]}')
+
 
     def handle_left_click(self):
-        if self.active_action == 'Road':
+        if self.active_action == 'Build':
             # wait until the canvas is focused into if it is not already
             # this is cruicial since the button to add a road is in a different window
             # if no wait, the first left click will show coordinates relative to the control window
@@ -255,10 +276,10 @@ class InteractiveWindow(Window):
             else:
                 # add to the road queue
                 self.road_queue.append(mouse_pos)
-                
+
     
     def handle_right_click(self):
-        if self.active_action == 'Road':
+        if self.active_action == 'Build':
             self.road_queue = []
             self.active_action = None
     
@@ -268,19 +289,21 @@ class InteractiveWindow(Window):
 
         if self.road_queue:
             with dpg.draw_node(tag=f'Draw Queue', parent='Canvas'):
-                for x, y in self.road_queue:
-                    self.draw_crosshair(x, y)
+                    for x, y in self.road_queue:
+                        self.draw_crosshair(x, y)
 
 
     def setup_canvas(self):
-        super().setup_canvas()
-
         with dpg.handler_registry(tag='Canvas Click Handler'):
             dpg.add_mouse_click_handler(callback=self.handle_canvas_click)
+        
+        with dpg.handler_registry(tag='Key Handler'):
+            dpg.add_key_press_handler(callback=self.handle_key_press)
         
         with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-350, 550), width=300):
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Add Road', callback=self.handle_add_road)
+            dpg.add_text(f'Current Structure: {self.build_wheel[self.build_wheel_idx]}', tag='Current Structure')
             dpg.add_slider_int(label='Lane Count', tag='Lane Count', default_value=3, min_value=1, max_value=10, clamped=True)
 
 
