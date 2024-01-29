@@ -235,6 +235,10 @@ class InteractiveWindow(Window):
     def handle_add_road(self):
         self.active_action = 'Build'
 
+    
+    def handle_clear_canvas(self):
+        self.setup_sim()
+
 
     # event handling
     def handle_canvas_click(self, sender, app_data):
@@ -301,6 +305,7 @@ class InteractiveWindow(Window):
             dpg.add_key_press_handler(callback=self.handle_key_press)
         
         with dpg.window(label='Controls', tag='Controls', no_resize=True, no_close=True, pos=(CANVAS_WIDTH-350, 550), width=300):
+            dpg.add_button(label='Clear Canvas', callback=self.handle_clear_canvas)
             dpg.add_button(label='Add Car', callback=self.handle_add_car)
             dpg.add_button(label='Add Road', callback=self.handle_add_road)
             dpg.add_text(f'Current Structure: {self.build_wheel[self.build_wheel_idx]}', tag='Current Structure')

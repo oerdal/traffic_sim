@@ -27,17 +27,7 @@ class Road:
     def __init__(self, path, n_lanes=3):
         # simulation variables
         self.path = path
-        if len(self.path) < 3:
-            # cannot do b-spline interp - construct beziers directly
-            self.beziers = [LinearBezier(*(np.array(pt) for pt in self.path))]
-        else:
-            b_splines = cubic_spline_interpolation(self.path)
-            self.beziers = []
-            for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], self.path[:-1], self.path[1:]):
-                P2, Q2 = trisect_line_segment(P2, Q2)
-                P1, Q1 = np.array(P1), np.array(Q1)
-                bezier = Bezier(P1, P2, Q2, Q1)
-                self.beziers.append(bezier)
+        self.beziers = self.compute_beziers(path)
             
         self.endpoints = path[0], path[-1]
         self.n_lanes = n_lanes
@@ -61,55 +51,49 @@ class Road:
         for i in range(1, n_lanes+1):
             trans_d = [[k*i*LANE_WIDTH for k in key_orthonorm] for key_orthonorm in key_orthonorms]
             trans_path = [[kx+kdx, ky+kdy] for (kx, ky), (kdx, kdy) in zip(key_points, trans_d)]
-            if len(trans_path) < 3:
-                # cannot do b-spline interp - construct beziers directly
-                trans_beziers = [LinearBezier(*(np.array(pt) for pt in trans_path))]
-            else:
-                b_splines = cubic_spline_interpolation(trans_path)
-                trans_beziers = []
-                for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], trans_path[:-1], trans_path[1:]):
-                    P2, Q2 = trisect_line_segment(P2, Q2)
-                    P1, Q1 = np.array(P1), np.array(Q1)
-                    bezier = Bezier(P1, P2, Q2, Q1)
-                    trans_beziers.append(bezier)
-
-            # recompute b_spline
-            lane = Lane(path=translate_coordinates(
-                trans_path,
-                self.orthonormal,
-                scale=i*LANE_WIDTH), road=self, beziers=trans_beziers, left_lane=self.forward_lanes[-1])
             
-            if self.forward_lanes[-1]:
-                self.forward_lanes[-1].right_lane = lane
-            self.forward_lanes.append(lane)
+            self.build_lane(trans_path, self.forward_lanes, i)
         
         # backward lanes
         for i in range(1, n_lanes+1):
             trans_d = [[k*i*LANE_WIDTH for k in key_orthonorm] for key_orthonorm in key_orthonorms]
             trans_path = [[kx-kdx, ky-kdy] for (kx, ky), (kdx, kdy) in zip(key_points, trans_d)][::-1]
-            if len(trans_path) < 3:
-                # cannot do b-spline interp - construct beziers directly
-                trans_beziers = [LinearBezier(*(np.array(pt) for pt in trans_path))]
-            else:
-                b_splines = cubic_spline_interpolation(trans_path)
-                trans_beziers = []
-                for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], trans_path[:-1], trans_path[1:]):
-                    P2, Q2 = trisect_line_segment(P2, Q2)
-                    P1, Q1 = np.array(P1), np.array(Q1)
-                    bezier = Bezier(P1, P2, Q2, Q1)
-                    trans_beziers.append(bezier)
-
-            # recompute b_spline
-            lane = Lane(path=translate_coordinates(
-                trans_path,
-                self.orthonormal,
-                scale=i*LANE_WIDTH), road=self, beziers=trans_beziers, left_lane=self.backward_lanes[-1])
             
-            if self.backward_lanes[-1]:
-                self.backward_lanes[-1].right_lane = lane
-            self.backward_lanes.append(lane)
+            self.build_lane(trans_path, self.backward_lanes, i)
         
         self.forward_lanes.pop(0)
         self.backward_lanes.pop(0)
         
         self.lanes = self.backward_lanes + self.forward_lanes
+
+    
+    def build_lane(self, path, lanes, lane_idx):
+        beziers = self.compute_beziers(path)
+
+        # recompute b_spline
+        lane = Lane(path=translate_coordinates(path, self.orthonormal, scale=lane_idx*LANE_WIDTH),
+                    road=self,
+                    beziers=beziers,
+                    left_lane=lanes[-1])
+        
+        if lanes[-1]:
+            lanes[-1].right_lane = lane
+        lanes.append(lane)
+
+        return lanes
+
+
+    def compute_beziers(self, path):
+        if len(path) < 3:
+            # cannot do b-spline interp - construct beziers directly
+            beziers = [LinearBezier(*(np.array(pt) for pt in path))]
+        else:
+            b_splines = cubic_spline_interpolation(path)
+            beziers = []
+            for P2, Q2, P1, Q1 in zip(b_splines[:-1], b_splines[1:], path[:-1], path[1:]):
+                P2, Q2 = trisect_line_segment(P2, Q2)
+                P1, Q1 = np.array(P1), np.array(Q1)
+                bezier = Bezier(P1, P2, Q2, Q1)
+                beziers.append(bezier)
+        
+        return beziers
