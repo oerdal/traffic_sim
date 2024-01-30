@@ -18,6 +18,8 @@ The eventual testing will be approached from a "Mythbusters" perspective, target
 
 Run the file using `py window.py -i` to run in interactive mode. Currently development is focused on interactive mode, so the static scenario usage case may not function properly at the present moment.
 
+Use the _Draw Road_ button and click on the canvas to place the path for a road. Click twice in one spot to terminate the road. The number of lanes can be adjusted using the slider, and the map can be moved around using the arrow keys. _'A'_ and _'D'_ cycle through the various placeable object types, but they currently all function as roads.
+
 ## Current Working Product
 
 ![Demo Screenshot](./traffic_sim_demo.png)
