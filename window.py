@@ -24,10 +24,20 @@ class Window:
         self.show_car_ids = False
         self.show_mouse_pos = False
 
+        self.canvas_bounds = [[0, 0], [CANVAS_WIDTH, CANVAS_HEIGHT]]
+
         # visualization initialization
         # rewriting this form to solve inheritence issue
         Window.setup_dpg(self)
         Window.setup_canvas(self)
+
+
+    def shift_xy(self, x, y):
+        return x + self.canvas_bounds[0][0], y + self.canvas_bounds[0][1]
+
+
+    def unshift_xy(self, x, y):
+        return x - self.canvas_bounds[0][0], y - self.canvas_bounds[0][1]
 
 
     def draw_bezier(self, bezier):
@@ -35,6 +45,9 @@ class Window:
             P0, P1, P2, P3 = bezier.P0, bezier.P0, bezier.P1, bezier.P1
         else:
             P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
+        
+        P0, P1, P2, P3 = self.unshift_xy(*P0), self.unshift_xy(*P1), self.unshift_xy(*P2), self.unshift_xy(*P3)
+            
         dpg.draw_bezier_cubic(P0, P1, P2, P3, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
     
 
@@ -132,6 +145,10 @@ class Window:
                 mouse_pos = dpg.get_mouse_pos(local=False)
                 dpg.draw_text((mouse_pos[0]-5, mouse_pos[1]-20), f'{mouse_pos}', size=FONT_SIZE)
                 self.draw_crosshair(mouse_pos[0], mouse_pos[1])
+        
+        # Canvas Bounds
+        with dpg.draw_node(tag='Canvas Bounds', parent='Canvas'):
+            dpg.draw_text((5, 5), f'Canvas Bounds: {self.canvas_bounds}', size=FONT_SIZE)
 
         # Focused car details
         if self.sim.focused_car:
@@ -172,6 +189,10 @@ class Window:
                         u1, u2 = car.compute_orientation()
                         l = car.l/2
                         x1, y1, x2, y2 = x1 - l*u1, y1 - l*u2, x1 + l*u1, y1 + l*u2
+
+                        # canvas navigation
+                        x1, y1 = self.unshift_xy(x1, y1)
+                        x2, y2 = self.unshift_xy(x2, y2)
                         
                         dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
 
@@ -254,6 +275,18 @@ class InteractiveWindow(Window):
     
     def handle_key_press(self, sender, app_data):
         match app_data:
+            case 37:
+                # left arrow
+                self.shift_canvas('L')
+            case 38:
+                # up arrow
+                self.shift_canvas('U')
+            case 39:
+                # right arrow
+                self.shift_canvas('R')
+            case 40:
+                # down arrow
+                self.shift_canvas('D')
             case 65:
                 # a
                 self.build_wheel_idx = (self.build_wheel_idx - 1) % len(self.build_wheel)
@@ -271,7 +304,7 @@ class InteractiveWindow(Window):
             # if no wait, the first left click will show coordinates relative to the control window
             while not dpg.is_item_focused('Canvas'):
                 ...
-            mouse_pos = dpg.get_mouse_pos(local=False)
+            mouse_pos = self.shift_xy(*dpg.get_mouse_pos(local=False))
             if self.road_queue and mouse_pos == self.road_queue[-1]:
                 # terminate road
                 self.sim.add_roads_from_path(self.road_queue, int(dpg.get_value('Lane Count')))
@@ -286,7 +319,23 @@ class InteractiveWindow(Window):
         if self.active_action == 'Build':
             self.road_queue = []
             self.active_action = None
+
     
+    def shift_canvas(self, direction, scale=0.05):
+        if direction == 'L' or direction == 'R':
+            width = self.canvas_bounds[1][0] - self.canvas_bounds[0][0]
+            dx = int(width * scale) if direction == 'R' else int(-width * scale)
+            self.canvas_bounds[1][0] += dx
+            self.canvas_bounds[0][0] += dx
+        
+        elif direction == 'U' or direction == 'D':
+            height = self.canvas_bounds[1][1] - self.canvas_bounds[0][1]
+            dx = int(height * scale) if direction == 'D' else int(-height * scale)
+            self.canvas_bounds[1][1] += dx
+            self.canvas_bounds[0][1] += dx
+        
+        dpg.set_value('Canvas Bounds', f'Canvas Bounds: {self.canvas_bounds}')
+        
 
     def render_loop(self):
         super().render_loop()
@@ -294,6 +343,7 @@ class InteractiveWindow(Window):
         if self.road_queue:
             with dpg.draw_node(tag=f'Draw Queue', parent='Canvas'):
                     for x, y in self.road_queue:
+                        x, y = self.unshift_xy(x, y)
                         self.draw_crosshair(x, y)
 
 
