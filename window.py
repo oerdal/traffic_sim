@@ -25,6 +25,7 @@ class Window:
         self.show_mouse_pos = False
 
         self.canvas_bounds = [[0, 0], [CANVAS_WIDTH, CANVAS_HEIGHT]]
+        self.ppm = 1 # "pixels per meter" - scaling factor
 
         # visualization initialization
         # rewriting this form to solve inheritence issue
@@ -38,6 +39,13 @@ class Window:
 
     def unshift_xy(self, x, y):
         return x - self.canvas_bounds[0][0], y - self.canvas_bounds[0][1]
+    
+
+    def get_canvas_height(self):
+        return self.canvas_bounds[1][1] - self.canvas_bounds[0][1]
+
+    def get_canvas_width(self):
+        return self.canvas_bounds[1][0] - self.canvas_bounds[0][0]
 
 
     def draw_bezier(self, bezier):
@@ -46,9 +54,17 @@ class Window:
         else:
             P0, P1, P2, P3 = bezier.P0, bezier.P1, bezier.P2, bezier.P3
         
-        P0, P1, P2, P3 = self.unshift_xy(*P0), self.unshift_xy(*P1), self.unshift_xy(*P2), self.unshift_xy(*P3)
+        # P0, P1, P2, P3 = self.unshift_xy(*P0), self.unshift_xy(*P1), self.unshift_xy(*P2), self.unshift_xy(*P3)
+        # dpg.draw_bezier_cubic(P0, P1, P2, P3, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
             
-        dpg.draw_bezier_cubic(P0, P1, P2, P3, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
+        control_points = [P0, P1, P2, P3]
+        for i, (x, y) in enumerate(control_points):
+            x *= self.ppm
+            y *= self.ppm
+            x, y = self.unshift_xy(x, y)
+            control_points[i] = [x, y]
+
+        dpg.draw_bezier_cubic(*control_points, color=(100, 100, 100, 200), thickness=LANE_WIDTH)
     
 
     def draw_crosshair(self, x, y):
@@ -187,14 +203,14 @@ class Window:
                         x1, y1 = car.compute_pos()
                         # u1, u2 = car.unit_vec
                         u1, u2 = car.compute_orientation()
-                        l = car.l/2
+                        l = car.l*self.ppm/2
                         x1, y1, x2, y2 = x1 - l*u1, y1 - l*u2, x1 + l*u1, y1 + l*u2
 
                         # canvas navigation
                         x1, y1 = self.unshift_xy(x1, y1)
                         x2, y2 = self.unshift_xy(x2, y2)
                         
-                        dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH-2)
+                        dpg.draw_line((x1, y1), (x2, y2), color=(50, 50, 250, 200), thickness=LANE_WIDTH*self.ppm-2)
 
                         # dpg.draw_line((x1-90, y1), (x2+90, y2), color=(250, 10, 10, 200), thickness=2)
                         # dpg.draw_text((x1, y1), f'{car.v:.2f}', size=10)
@@ -293,6 +309,12 @@ class InteractiveWindow(Window):
             case 68:
                 # d
                 self.build_wheel_idx = (self.build_wheel_idx + 1) % len(self.build_wheel)
+            case 187:
+                # +
+                self.zoom_in()
+            case 189:
+                # -
+                self.zoom_out()
         
         dpg.set_value('Current Structure', f'Current Structure: {self.build_wheel[self.build_wheel_idx]}')
 
@@ -335,8 +357,32 @@ class InteractiveWindow(Window):
             self.canvas_bounds[0][1] += dx
         
         dpg.set_value('Canvas Bounds', f'Canvas Bounds: {self.canvas_bounds}')
-        
+    
 
+    def zoom_in(self, scale=1.05):
+        canvas_width, canvas_height = self.get_canvas_width(), self.get_canvas_height()
+        self.ppm *= scale
+        self.sim.ppm = self.ppm
+        new_width, new_height = canvas_width / scale, canvas_height / scale
+        dx, dy = canvas_width - new_width, canvas_height - new_height
+        x1, x2 = self.canvas_bounds[0][0] + dx, self.canvas_bounds[1][0] - dx
+        y1, y2 = self.canvas_bounds[0][1] + dy, self.canvas_bounds[1][1] - dy
+        self.canvas_bounds = [[x1, y1], [x2, y2]]
+
+
+    
+    def zoom_out(self, scale=1.05):
+        canvas_width, canvas_height = self.get_canvas_width(), self.get_canvas_height()
+        self.ppm /= scale
+        self.sim.ppm = self.ppm
+        new_width, new_height = canvas_width * scale, canvas_height * scale
+        dx, dy = new_width - canvas_width, new_height - canvas_height
+        x1, x2 = self.canvas_bounds[0][0] - dx, self.canvas_bounds[1][0] + dx
+        y1, y2 = self.canvas_bounds[0][1] - dy, self.canvas_bounds[1][1] + dy
+        self.canvas_bounds = [[x1, y1], [x2, y2]]
+
+        
+    ## RENDERING
     def render_loop(self):
         super().render_loop()
 

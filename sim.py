@@ -16,6 +16,7 @@ class Simulation:
         self.junctions = []
         self.dead_cars = []
         self.fps = 60
+        self.ppm = 1
         self.ticks_since_car = 0
         self.ticks_since_lane_change = 0
 
@@ -75,7 +76,7 @@ class Simulation:
 
             # check if we can add a car to this lane without causing an accident
             if lane.last_car:
-                if lane.last_car.x - lane.last_car.l/2 > car_args['l']/2*PPM + car_args['s_0']*PPM:
+                if lane.last_car.x - lane.last_car.l/2 > car_args['l']/2*self.ppm + car_args['s_0']*self.ppm:
                     # can add
                     car = Car(car_args, car_id=self.car_id, lane=lane)
                     self.cars[self.car_id] = car
